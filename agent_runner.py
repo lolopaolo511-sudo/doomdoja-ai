@@ -18,6 +18,12 @@ AGENT_DIR = Path(__file__).parent
 TASKS_DIR = AGENT_DIR / "tasks"
 LOGS_DIR = AGENT_DIR / "logs"
 
+try:
+    from memory import AgentMemory
+    _MEMORY_AVAILABLE = True
+except ImportError:
+    _MEMORY_AVAILABLE = False
+
 AIDER_BIN = Path.home() / "Library/Python/3.9/bin/aider"
 AIDER_MODEL = "ollama_chat/deepseek-coder-v2:16b"
 
@@ -104,10 +110,20 @@ def process_task(task_file: Path, repo: Path, max_retries: int, logger: logging.
     logger.info(f"=== Zadanie: {task_name} ===")
     logger.info(f"Treść: {task_text[:200]}")
 
+    mem = AgentMemory() if _MEMORY_AVAILABLE else None
+    memory_context = ""
+    if mem:
+        relevant = mem.recall(task_text, top_k=4)
+        if relevant:
+            memory_context = mem.format_for_prompt(relevant)
+            logger.info(f"Przywołano {len(relevant)} wspomnień z pamięci")
+
+    enriched_task = f"{memory_context}\n{task_text}" if memory_context else task_text
+
     for attempt in range(1, max_retries + 1):
         logger.info(f"--- Próba {attempt}/{max_retries} ---")
 
-        aider_ok = run_aider(task_text, repo, logger)
+        aider_ok = run_aider(enriched_task, repo, logger)
         if not aider_ok:
             logger.warning("Aider zakończył z błędem, próbuję testy mimo to...")
 
@@ -118,6 +134,14 @@ def process_task(task_file: Path, repo: Path, max_retries: int, logger: logging.
             git_commit(repo, commit_msg, logger)
             shutil.move(str(task_file), str(TASKS_DIR / "done" / task_file.name))
             logger.info(f"SUKCES: zadanie {task_name} ukończone po {attempt} próbach")
+            if mem:
+                mem.remember(
+                    f"Zadanie '{task_name}' ukończone po {attempt} próbach. Treść: {task_text[:300]}",
+                    tags=[f"repo:{repo.name}", "status:success"],
+                    session_id=task_name,
+                    importance=2,
+                )
+                logger.info("Wynik zapisany w pamięci trwałej")
             return True
 
         if attempt < max_retries:
@@ -128,6 +152,13 @@ def process_task(task_file: Path, repo: Path, max_retries: int, logger: logging.
 
     logger.error(f"PORAŻKA: zadanie {task_name} nie ukończone po {max_retries} próbach")
     shutil.move(str(task_file), str(TASKS_DIR / "failed" / task_file.name))
+    if mem:
+        mem.remember(
+            f"Zadanie '{task_name}' NIEUDANE po {max_retries} próbach. Treść: {task_text[:300]}",
+            tags=[f"repo:{repo.name}", "status:failed"],
+            session_id=task_name,
+            importance=3,
+        )
     return False
 
 
