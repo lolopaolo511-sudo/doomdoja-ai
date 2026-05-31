@@ -200,3 +200,8 @@ python3 ~/qwen-agent/multiagent/orchestrator.py \
 ├── vision_tool.py
 └── make_sample.py
 ```
+
+## Status końcowy
+
+Wszystkie 6 etapów ukończone. Repo na: https://github.com/lolopaolo511-sudo/doomdoja-ai
+
