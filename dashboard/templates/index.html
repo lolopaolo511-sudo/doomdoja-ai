@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>qwen-agent dashboard</title>
+<style>
+  :root {
+    --bg: #0f1117; --card: #1a1d27; --border: #2a2d3a;
+    --accent: #7c6af7; --green: #22c55e; --red: #ef4444; --yellow: #eab308;
+    --text: #e2e8f0; --muted: #64748b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Courier New', monospace; font-size: 13px; }
+  header { background: var(--card); border-bottom: 1px solid var(--border); padding: 12px 20px;
+           display: flex; align-items: center; gap: 16px; }
+  header h1 { font-size: 16px; color: var(--accent); }
+  .badge { padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+  .badge-green { background: #14532d; color: var(--green); }
+  .badge-red { background: #450a0a; color: var(--red); }
+  .badge-yellow { background: #422006; color: var(--yellow); }
+  .badge-purple { background: #2e1065; color: #a78bfa; }
+  main { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 16px; max-width: 1400px; margin: 0 auto; }
+  .full-width { grid-column: 1 / -1; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+  .card h2 { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+  .stat-row { display: flex; gap: 16px; flex-wrap: wrap; }
+  .stat { text-align: center; }
+  .stat .num { font-size: 28px; font-weight: bold; color: var(--accent); }
+  .stat .label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .model-list { display: flex; flex-wrap: wrap; gap: 6px; }
+  .model-chip { background: #1e2035; border: 1px solid var(--border); border-radius: 4px;
+                padding: 3px 8px; font-size: 11px; color: #a78bfa; }
+  .task-list { max-height: 220px; overflow-y: auto; }
+  .task-item { border-bottom: 1px solid var(--border); padding: 6px 0; }
+  .task-item .task-name { color: var(--accent); font-size: 11px; }
+  .task-item .task-content { color: var(--muted); font-size: 11px; margin-top: 2px;
+                              white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .task-item .task-time { color: #475569; font-size: 10px; }
+  pre { background: #0a0c14; border: 1px solid var(--border); border-radius: 6px; padding: 10px;
+        font-size: 11px; overflow: auto; max-height: 280px; color: #94a3b8; line-height: 1.5; }
+  form { display: flex; flex-direction: column; gap: 8px; }
+  input, textarea { background: #0a0c14; border: 1px solid var(--border); border-radius: 4px;
+                    color: var(--text); padding: 6px 10px; font-family: inherit; font-size: 12px; resize: vertical; }
+  input:focus, textarea:focus { outline: none; border-color: var(--accent); }
+  button { background: var(--accent); color: white; border: none; border-radius: 4px; padding: 7px 14px;
+           cursor: pointer; font-family: inherit; font-size: 12px; font-weight: bold; }
+  button:hover { opacity: 0.85; }
+  button.secondary { background: #2d3152; }
+  .tabs { display: flex; gap: 2px; margin-bottom: 10px; }
+  .tab { padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; color: var(--muted); }
+  .tab.active { background: #2d3152; color: var(--text); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+  #toast { position: fixed; bottom: 20px; right: 20px; background: var(--green); color: #000;
+           padding: 8px 16px; border-radius: 6px; font-size: 12px; display: none; z-index: 100; }
+  .refresh-hint { color: var(--muted); font-size: 10px; margin-left: auto; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⬡ qwen-agent dashboard</h1>
+  <span class="badge {{ 'badge-green' if ollama_ok else 'badge-red' }}">
+    Ollama {{ 'ON' if ollama_ok else 'OFF' }}
+  </span>
+  <span class="badge badge-purple">{{ counts.pending }} pending</span>
+  <span class="badge badge-green">{{ counts.done }} done</span>
+  <span class="badge badge-red">{{ counts.failed }} failed</span>
+  <span class="refresh-hint">Auto-refresh co 15s</span>
+</header>
+
+<main>
+  <!-- Statystyki -->
+  <div class="card">
+    <h2>Kolejka zadań</h2>
+    <div class="stat-row">
+      <div class="stat"><div class="num" style="color:#eab308">{{ counts.pending }}</div><div class="label">Pending</div></div>
+      <div class="stat"><div class="num" style="color:#22c55e">{{ counts.done }}</div><div class="label">Done</div></div>
+      <div class="stat"><div class="num" style="color:#ef4444">{{ counts.failed }}</div><div class="label">Failed</div></div>
+    </div>
+  </div>
+
+  <!-- Modele Ollama -->
+  <div class="card">
+    <h2>Modele Ollama</h2>
+    {% if models %}
+    <div class="model-list">
+      {% for m in models %}
+      <span class="model-chip">{{ m.name }}</span>
+      {% endfor %}
+    </div>
+    {% else %}
+    <span style="color:var(--muted)">Brak modeli / Ollama offline</span>
+    {% endif %}
+  </div>
+
+  <!-- Nowe zadanie -->
+  <div class="card">
+    <h2>Nowe zadanie</h2>
+    <form id="task-form">
+      <textarea name="task_text" id="task_text" rows="3" placeholder="Opis zadania dla agenta..."></textarea>
+      <input name="repo" id="repo" type="text" placeholder="Ścieżka do repo (opcjonalna)">
+      <div style="display:flex;gap:8px">
+        <button type="submit">+ Dodaj zadanie</button>
+        <button type="button" class="secondary" onclick="runAgent()">▶ Uruchom agenta</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Zadania w zakładkach -->
+  <div class="card">
+    <h2>Zadania</h2>
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('pending', this)">Pending ({{ counts.pending }})</div>
+      <div class="tab" onclick="switchTab('done', this)">Done ({{ counts.done }})</div>
+      <div class="tab" onclick="switchTab('failed', this)">Failed ({{ counts.failed }})</div>
+    </div>
+    <div id="tab-pending" class="tab-content active task-list">
+      {% for t in pending %}
+      <div class="task-item">
+        <div class="task-name">{{ t.name }}</div>
+        <div class="task-content">{{ t.content }}</div>
+        <div class="task-time">{{ t.mtime }}</div>
+      </div>
+      {% else %}<div style="color:var(--muted);font-size:11px">Brak zadań</div>{% endfor %}
+    </div>
+    <div id="tab-done" class="tab-content task-list">
+      {% for t in done %}
+      <div class="task-item">
+        <div class="task-name">{{ t.name }}</div>
+        <div class="task-content">{{ t.content }}</div>
+        <div class="task-time">{{ t.mtime }}</div>
+      </div>
+      {% else %}<div style="color:var(--muted);font-size:11px">Brak zadań</div>{% endfor %}
+    </div>
+    <div id="tab-failed" class="tab-content task-list">
+      {% for t in failed %}
+      <div class="task-item">
+        <div class="task-name">{{ t.name }}</div>
+        <div class="task-content">{{ t.content }}</div>
+        <div class="task-time">{{ t.mtime }}</div>
+      </div>
+      {% else %}<div style="color:var(--muted);font-size:11px">Brak zadań</div>{% endfor %}
+    </div>
+  </div>
+
+  <!-- Logi -->
+  <div class="card full-width">
+    <h2>Logi (ostatnie 80 linii)</h2>
+    <pre id="log-box">{{ logs }}</pre>
+  </div>
+</main>
+
+<div id="toast"></div>
+
+<script>
+function showToast(msg, color='#22c55e') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.background = color; t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 3000);
+}
+
+document.getElementById('task-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const r = await fetch('/task/create', { method: 'POST', body: fd });
+  const d = await r.json();
+  if (d.status === 'ok') { showToast('Zadanie dodane: ' + d.task); e.target.reset(); }
+  else showToast('Błąd: ' + JSON.stringify(d), '#ef4444');
+});
+
+async function runAgent() {
+  const repo = document.getElementById('repo').value.trim();
+  if (!repo) { showToast('Podaj ścieżkę do repo', '#eab308'); return; }
+  const fd = new FormData(); fd.append('repo', repo);
+  const r = await fetch('/task/run-agent', { method: 'POST', body: fd });
+  const d = await r.json();
+  showToast(d.status === 'started' ? 'Agent uruchomiony w tle' : 'Błąd: ' + d.msg,
+            d.status === 'started' ? '#22c55e' : '#ef4444');
+}
+
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+// Auto-refresh co 15s — aktualizuje logi i liczniki via API
+setInterval(async () => {
+  try {
+    const [status, logs] = await Promise.all([
+      fetch('/api/status').then(r => r.json()),
+      fetch('/api/logs?n=80').then(r => r.json()),
+    ]);
+    document.getElementById('log-box').textContent = logs.logs;
+    document.getElementById('log-box').scrollTop = 9999;
+  } catch {}
+}, 15000);
+
+// Scroll log box do dołu na starcie
+window.addEventListener('load', () => {
+  const lb = document.getElementById('log-box');
+  lb.scrollTop = lb.scrollHeight;
+});
+</script>
+</body>
+</html>
