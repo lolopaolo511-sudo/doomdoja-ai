@@ -1,0 +1,1 @@
+Zadanie: {user_input}. Stwórz plan w 4 krokach: 1. Research & Scrape (źródła: Upwork/LinkedIn/firmy) 2. Qualification & Scoring 3. Personalizacja outreach 4. Follow-up schedule + Airtable log. Podaj dokładne tool calls i kolejność.

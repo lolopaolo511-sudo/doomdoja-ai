@@ -1,0 +1,1 @@
+Napisz funkcję: def process_document(image_path: str, doc_type: str) -> dict. Użyj ollama vision z promptem schema-driven. Schemat dla faktury: vendor, date, total, items[], currency. Dla CV: name, experience[], skills[], education[]. Zapisz do Airtable i wyślij webhook n8n.

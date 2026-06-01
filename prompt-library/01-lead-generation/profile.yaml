@@ -1,0 +1,31 @@
+name: lead-generation
+description: B2B Lead Generation & Intelligent Follow-up pipeline
+
+models:
+  planner: deepseek-coder-v2:16b
+  coder: deepseek-coder-v2:16b
+  reviewer: deepseek-coder-v2:16b
+
+tools:
+  - playwright_scrape
+  - airtable_write
+  - n8n_webhook
+  - search_web
+
+paths:
+  tools_dir: ~/qwen-agent/tools/
+  workspace: ~/qwen-agent/multiagent/workspace/lead-generation/
+
+integrations:
+  airtable:
+    tables: [Leads, FollowUps]
+  n8n:
+    webhook_env: N8N_WEBHOOK_URL
+  telegram:
+    optional: true
+
+prompts:
+  system: system.md
+  planner: planner.md
+  coder: coder.md
+  reviewer: reviewer.md

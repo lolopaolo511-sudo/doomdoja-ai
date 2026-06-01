@@ -1,0 +1,32 @@
+name: vision-ocr
+description: Vision/OCR Pipeline dla faktur, CV i dokumentów
+
+models:
+  planner: deepseek-coder-v2:16b
+  coder: deepseek-coder-v2:16b
+  reviewer: deepseek-coder-v2:16b
+  vision: llava
+
+tools:
+  - vision_cli
+  - airtable_write
+  - n8n_webhook
+
+paths:
+  vision_cli: ~/qwen-agent/tools/vision_cli.py
+  incoming_docs: ~/incoming-docs/
+  workspace: ~/qwen-agent/multiagent/workspace/vision-ocr/
+
+integrations:
+  airtable:
+    tables: [Invoices, CVs, Reports]
+  n8n:
+    webhook_env: N8N_WEBHOOK_URL
+  launchd:
+    plist: ~/Library/LaunchAgents/com.qwen.vision-watch.plist
+
+prompts:
+  system: system.md
+  planner: planner.md
+  coder: coder.md
+  reviewer: reviewer.md

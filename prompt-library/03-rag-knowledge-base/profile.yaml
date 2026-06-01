@@ -1,0 +1,35 @@
+name: rag-knowledge-base
+description: RAG Knowledge Base dla firmy — pytania z cytatami
+
+models:
+  planner: deepseek-coder-v2:16b
+  coder: deepseek-coder-v2:16b
+  reviewer: deepseek-coder-v2:16b
+  embeddings: nomic-embed-text
+
+tools:
+  - rag_query
+  - rag_add_documents
+  - airtable_write
+  - n8n_webhook
+
+paths:
+  rag_dir: ~/qwen-rag/
+  query_script: ~/qwen-rag/query.py
+  company_docs: ~/company-docs/
+  workspace: ~/qwen-agent/multiagent/workspace/rag-knowledge-base/
+
+integrations:
+  airtable:
+    tables: [Documents, QueryLog]
+  n8n:
+    webhook_env: N8N_WEBHOOK_URL
+  dashboard:
+    port: 8080
+    script: ~/qwen-rag/dashboard.py
+
+prompts:
+  system: system.md
+  planner: planner.md
+  coder: coder.md
+  reviewer: reviewer.md
