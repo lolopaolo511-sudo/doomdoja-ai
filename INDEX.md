@@ -1,32 +1,5 @@
 # doomdoja-ai — Indeks systemu AI
-> Ostatnia aktualizacja: 2026-06-01 (po rozbudowie ETAPy 1/2/3/6/7/8)
-
-## ⭐ NOWE komponenty (rozbudowa 2026-06-01)
-
-| Etap | Ścieżka | Opis | Status | Wymaga do live |
-|------|---------|------|--------|----------------|
-| **1** | `~/qwen-agent/prospecting/` | Auto-prospecting Upwork: scrape→score→proposal→Airtable | ✅ działa (mock+dryrun) | `UPWORK_COOKIE`, `AIRTABLE_PAT` |
-| **2** | `~/scraper-product/portal/` | Portal klienta FastAPI (multi-tenant, raporty) | ✅ działa | — (Tailscale do zdalnego dostępu) |
-| **3** | `~/qwen-vision/service/` | Document automation: upload→llava→JSON+raport | ✅ działa | — (llava już lokalnie) |
-| **6** | `~/qwen-agent/browser/` | Agent steruje Playwright (navigate/click/fill_form) | ✅ działa | — |
-| **7** | `~/qwen-agent/self_improve/` | Loguje błędy, generuje propozycje poprawek (DO REVIEW) | ✅ działa | — |
-| **8** | `~/qwen-agent/evals/` | Eval harness: zadania YAML, pass/fail + tok/s, porównanie modeli | ✅ działa | — |
-
-**Demo każdego etapu:**
-```bash
-# ETAP 1
-cd ~/qwen-agent/prospecting && python3 run_prospecting.py --no-llm
-# ETAP 2
-cd ~/scraper-product/portal && python3 main.py  # → http://localhost:8010
-# ETAP 3
-cd ~/qwen-vision/service && python3 main.py     # → http://localhost:8020
-# ETAP 6
-cd ~/qwen-agent/browser && python3 demo.py
-# ETAP 7
-cd ~/qwen-agent/self_improve && python3 demo.py
-# ETAP 8
-cd ~/qwen-agent/evals && python3 runner.py --models qwen2.5-coder:7b
-```
+> Ostatnia aktualizacja: 2026-06-01
 
 ---
 
@@ -40,8 +13,11 @@ cd ~/qwen-agent/evals && python3 runner.py --models qwen2.5-coder:7b
 | **Model embed** | `nomic-embed-text` (RAG) |
 | **Open WebUI** | `http://localhost:3000` — uruchom: `~/openwebui-setup/start.sh` |
 | **Tailscale** | VPN do zdalnego dostępu |
+| **Qdrant** | `http://localhost:6333` — vector DB (Docker) |
+| **n8n** | `http://localhost:5678` — workflow automation / webhooki follow-up |
+| **SearxNG** | `http://localhost:8888` — lokalny search engine dla agentów |
 | **Airtable** | CRM / baza leadów (konfiguracja w `.env`) |
-| **Make.com** | Workflow automation / webhooki follow-up (cloud, plan darmowy) |
+| **Docker stack** | `~/doomdoja-stack/` — Colima + docker-compose (Qdrant, n8n, SearxNG) |
 
 ---
 
@@ -49,94 +25,94 @@ cd ~/qwen-agent/evals && python3 runner.py --models qwen2.5-coder:7b
 
 ### 🤖 qwen-agent — Orchestrator multi-agentowy
 - **Ścieżka:** `~/qwen-agent/`
-- **GitHub:** `lolopaolo511-sudo/doomdoja-ai` (main branch, zsynchronizowany)
+- **GitHub:** [lolopaolo511-sudo/doomdoja-ai](https://github.com/lolopaolo511-sudo/doomdoja-ai) — main, zsynchronizowany
 - **Uruchomienie:**
   ```bash
   python3 ~/qwen-agent/multiagent/orchestrator.py "zadanie" --profile <profil>
   python3 ~/qwen-agent/multiagent/orchestrator.py "..." --plan-only   # dry-run
   ```
 - **Profile:** `~/qwen-agent/prompt-library/` — `01-lead-generation`, itd.
-- **Zależności:** Ollama, Airtable API, Make.com webhook
+- **Zależności:** Ollama, Airtable API, n8n webhook
 
 ### 🕷️ qwen-scraper — Pipeline scrapingowy
 - **Ścieżka:** `~/qwen-scraper/`
-- **Git:** lokalnie tylko (brak remote), zainicjowany
-- **Rozmiar:** 378 MB (głównie `.venv` — ignorowane)
+- **GitHub:** [lolopaolo511-sudo/qwen-scraper](https://github.com/lolopaolo511-sudo/qwen-scraper) — main, zsynchronizowany
+- **Rozmiar:** 378 MB (głównie `.venv` — gitignored)
 - **Uruchomienie:** `python3 demo_stage1.py` / `demo_stage2.py` / `demo_stage3.py`
 - **Stage 1:** Playwright scraping | **Stage 2:** Ollama extraction | **Stage 3:** ReAct agent | **Stage 4:** launchd scheduler
 - **Zależności:** Playwright, Ollama, pandas, launchd (macOS)
 
 ### 📚 qwen-rag — RAG nad dokumentami i kodem
 - **Ścieżka:** `~/qwen-rag/`
-- **Git:** lokalnie tylko (brak remote)
+- **GitHub:** [lolopaolo511-sudo/qwen-rag](https://github.com/lolopaolo511-sudo/qwen-rag) — main, zsynchronizowany
 - **Uruchomienie:**
   ```bash
   python3 ~/qwen-rag/ingest.py <plik>    # indeksowanie
   python3 ~/qwen-rag/query.py "pytanie"  # zapytanie
   ```
-- **Vector DB:** ChromaDB (lokalnie, `chroma_db/` — gitignored)
-- **Zależności:** ChromaDB, `nomic-embed-text` via Ollama
+- **Vector DB:** ChromaDB (lokalnie, `chroma_db/` — gitignored) lub Qdrant (port 6333)
+- **Zależności:** ChromaDB / Qdrant, `nomic-embed-text` via Ollama
 
 ### 👁️ qwen-vision — Vision / multimodal
 - **Ścieżka:** `~/qwen-vision/`
-- **Git:** lokalnie tylko (brak remote)
+- **GitHub:** [lolopaolo511-sudo/qwen-vision](https://github.com/lolopaolo511-sudo/qwen-vision) — main, zsynchronizowany
 - **Uruchomienie:** `python3 ~/qwen-vision/vision_cli.py <obraz>`
 - **Model:** `llava:7b` via Ollama
 - **Zależności:** Ollama + llava:7b
 
 ### 🧪 qwen-lab — Benchmarki modeli
 - **Ścieżka:** `~/qwen-lab/`
-- **Git:** lokalnie tylko (brak remote), zainicjowany
+- **GitHub:** [lolopaolo511-sudo/qwen-lab](https://github.com/lolopaolo511-sudo/qwen-lab) — main, zsynchronizowany
 - **Uruchomienie:** `./run_benchmark.sh <model>` lub `./benchmark_tasks.sh`
 - **Wyniki:** `results/` (gitignored, generowane)
 
 ### 🛒 scraper-product — Produktyzowany scraper (Upwork gig)
 - **Ścieżka:** `~/scraper-product/`
-- **Git:** lokalnie tylko (brak remote)
+- **GitHub:** [lolopaolo511-sudo/scraper-product](https://github.com/lolopaolo511-sudo/scraper-product) — main, zsynchronizowany
 - **Uruchomienie:** `python3 pipeline/main.py --config config.yaml`
-- **Wyjścia:** Excel + PDF raporty, Airtable, Slack/email, Make.com workflow
+- **Wyjścia:** Excel + PDF raporty, Airtable, Slack/email, n8n workflow
 - **Konfiguracja:** `config.yaml` + `.env` (secrets — nigdy do gita)
 
 ### 🌐 openwebui-setup — Open WebUI (UI dla Ollamy)
 - **Ścieżka:** `~/openwebui-setup/`
-- **Git:** NIE (venv 2.3 GB)
+- **Git:** NIE (venv 2.3 GB — bez sensu trackować)
 - **Uruchomienie:** `~/openwebui-setup/start.sh`
 - **Port:** `http://localhost:3000`
 - **Dane:** `~/openwebui-setup/data/`
 
 ### 🎮 MarioClone — Klon Mario (Python/pygame)
 - **Ścieżka:** `~/MarioClone/`
-- **Git:** lokalnie tylko (brak remote), zainicjowany
+- **GitHub:** [lolopaolo511-sudo/MarioClone](https://github.com/lolopaolo511-sudo/MarioClone) — main, zsynchronizowany
 - **Uruchomienie:** `python3 main.py`
 
 ### 🎮 GodotMario — Klon Mario (Godot)
 - **Ścieżka:** `~/GodotMario/`
-- **Git:** lokalnie tylko (brak remote), zainicjowany
+- **GitHub:** [lolopaolo511-sudo/GodotMario](https://github.com/lolopaolo511-sudo/GodotMario) — main, zsynchronizowany
 - **Uruchomienie:** Godot Engine → otwórz `project.godot`
 
 ### 🎮 IcyTower — Icy Tower (HTML/JS)
 - **Ścieżka:** `~/IcyTower/`
-- **Git:** lokalnie tylko (brak remote), zainicjowany
+- **GitHub:** [lolopaolo511-sudo/IcyTower](https://github.com/lolopaolo511-sudo/IcyTower) — main, zsynchronizowany
 - **Uruchomienie:** otwórz `index.html` w przeglądarce
 
 ---
 
 ## Status GitHub (2026-06-01)
 
-| Projekt | Git | Remote/GitHub | Synced |
-|---------|-----|---------------|--------|
-| qwen-agent | ✅ | ✅ `lolopaolo511-sudo/doomdoja-ai` | ✅ main=origin |
-| qwen-scraper | ✅ | ❌ tylko lokalnie | — |
-| qwen-rag | ✅ | ❌ tylko lokalnie | — |
-| qwen-vision | ✅ | ❌ tylko lokalnie | — |
-| qwen-lab | ✅ | ❌ tylko lokalnie | — |
-| scraper-product | ✅ | ❌ tylko lokalnie | — |
-| openwebui-setup | ❌ | ❌ | — |
-| MarioClone | ✅ | ❌ tylko lokalnie | — |
-| GodotMario | ✅ | ❌ tylko lokalnie | — |
-| IcyTower | ✅ | ❌ tylko lokalnie | — |
+| Projekt | GitHub | Synced |
+|---------|--------|--------|
+| qwen-agent | ✅ [doomdoja-ai](https://github.com/lolopaolo511-sudo/doomdoja-ai) | ✅ |
+| qwen-scraper | ✅ [qwen-scraper](https://github.com/lolopaolo511-sudo/qwen-scraper) | ✅ |
+| qwen-rag | ✅ [qwen-rag](https://github.com/lolopaolo511-sudo/qwen-rag) | ✅ |
+| qwen-vision | ✅ [qwen-vision](https://github.com/lolopaolo511-sudo/qwen-vision) | ✅ |
+| qwen-lab | ✅ [qwen-lab](https://github.com/lolopaolo511-sudo/qwen-lab) | ✅ |
+| scraper-product | ✅ [scraper-product](https://github.com/lolopaolo511-sudo/scraper-product) | ✅ |
+| openwebui-setup | — (2.3 GB venv, bez sensu) | — |
+| MarioClone | ✅ [MarioClone](https://github.com/lolopaolo511-sudo/MarioClone) | ✅ |
+| GodotMario | ✅ [GodotMario](https://github.com/lolopaolo511-sudo/GodotMario) | ✅ |
+| IcyTower | ✅ [IcyTower](https://github.com/lolopaolo511-sudo/IcyTower) | ✅ |
 
-**Odpowiedź: NIE — większość kodu jest TYLKO LOKALNIE.** Tylko `qwen-agent` jest na GitHubie.
+**WSZYSTKO JEST NA GITHUBIE** (poza openwebui-setup, który jest za duży).
 
 ---
 
@@ -148,6 +124,9 @@ ollama serve
 
 # Start Open WebUI
 ~/openwebui-setup/start.sh
+
+# Start Docker stack (Qdrant, n8n, SearxNG)
+cd ~/doomdoja-stack && docker compose up -d
 
 # Dry-run orchestratora
 python3 ~/qwen-agent/multiagent/orchestrator.py "zadanie" --profile 01-lead-generation --plan-only
