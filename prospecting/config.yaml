@@ -1,0 +1,48 @@
+profile:
+  name: "Piero Nocentini"
+  title: "AI Automation & Web Scraping Expert"
+  hourly_rate_min: 35
+  hourly_rate_max: 120
+  preferred_budget_min: 500
+  skills:
+    - "web scraping"
+    - "python automation"
+    - "AI agent"
+    - "data extraction"
+    - "LLM"
+    - "FastAPI"
+    - "playwright"
+    - "airtable"
+    - "n8n"
+    - "document processing"
+    - "OCR"
+    - "lead generation"
+  avoid_keywords:
+    - "wordpress only"
+    - "react native"
+    - "mobile app"
+  strong_match_keywords:
+    - "scraping"
+    - "automation"
+    - "python"
+    - "AI"
+    - "agent"
+    - "data pipeline"
+    - "invoice"
+    - "pdf extraction"
+
+source:
+  # PRIMARY: Upwork requires login — use RSS feed adapter or mock
+  # RSS endpoint (public, no login): https://www.upwork.com/ab/feed/jobs/rss?q=...&sort=recency
+  # NOTE: Upwork RSS often requires session cookies. Set UPWORK_COOKIE in .env
+  #       to pass a real session. Without it, the mock adapter is used.
+  use_mock: true          # set false when UPWORK_COOKIE is available
+  mock_count: 8
+  rss_query: "python scraping AI automation"
+  rss_max_jobs: 20
+
+airtable:
+  # Set AIRTABLE_PAT and AIRTABLE_BASE_ID in .env for live mode
+  dry_run: true
+  base_id: "appXXXXXXXXXXXXXX"  # placeholder
+  table_name: "Prospects"
