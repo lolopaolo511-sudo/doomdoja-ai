@@ -1,0 +1,213 @@
+{
+  "results": [
+    {
+      "id": "code_fizzbuzz",
+      "category": "coding",
+      "model": "qwen2.5-coder:7b",
+      "status": "pass",
+      "latency_s": 4.4,
+      "tokens_per_s": 21.3,
+      "tokens": 84,
+      "response_snippet": "```python\ndef fizzbuzz(n):\n    for i in range(1, n + 1):\n        if i % 3 == 0 and i % 5 == 0:\n            print(\"FizzBuzz\")\n        elif i % 3 == 0:\n            print(\"Fizz\")\n        elif i % 5 == 0:",
+      "fail_reasons": []
+    },
+    {
+      "id": "code_palindrome",
+      "category": "coding",
+      "model": "qwen2.5-coder:7b",
+      "status": "pass",
+      "latency_s": 1.16,
+      "tokens_per_s": 20.3,
+      "tokens": 19,
+      "response_snippet": "```python\ndef is_palindrome(s):\n    return s == s[::-1]\n```",
+      "fail_reasons": []
+    },
+    {
+      "id": "rag_python_dict",
+      "category": "knowledge",
+      "model": "qwen2.5-coder:7b",
+      "status": "pass",
+      "latency_s": 1.31,
+      "tokens_per_s": 22.1,
+      "tokens": 23,
+      "response_snippet": "Słownik w Pythonie ma złożoność czasową wyszukiwania O(1).",
+      "fail_reasons": []
+    },
+    {
+      "id": "rag_http_codes",
+      "category": "knowledge",
+      "model": "qwen2.5-coder:7b",
+      "status": "pass",
+      "latency_s": 1.36,
+      "tokens_per_s": 21.9,
+      "tokens": 25,
+      "response_snippet": "HTTP 429 oznacza \"Zbyt wiele żądań\" (Too Many Requests).",
+      "fail_reasons": []
+    },
+    {
+      "id": "reason_math",
+      "category": "reasoning",
+      "model": "qwen2.5-coder:7b",
+      "status": "fail",
+      "latency_s": 0.44,
+      "tokens_per_s": 32.0,
+      "tokens": 3,
+      "response_snippet": "76",
+      "fail_reasons": [
+        "substring miss: '80'"
+      ]
+    },
+    {
+      "id": "reason_word",
+      "category": "reasoning",
+      "model": "qwen2.5-coder:7b",
+      "status": "fail",
+      "latency_s": 0.4,
+      "tokens_per_s": 26.8,
+      "tokens": 5,
+      "response_snippet": "enamihc",
+      "fail_reasons": [
+        "substring miss: 'enihcam'"
+      ]
+    },
+    {
+      "id": "scrape_css_selector",
+      "category": "scraping",
+      "model": "qwen2.5-coder:7b",
+      "status": "pass",
+      "latency_s": 0.45,
+      "tokens_per_s": 31.0,
+      "tokens": 3,
+      "response_snippet": "span.price",
+      "fail_reasons": []
+    },
+    {
+      "id": "vision_describe",
+      "category": "vision",
+      "model": "qwen2.5-coder:7b",
+      "status": "pass",
+      "latency_s": 2.44,
+      "tokens_per_s": 21.7,
+      "tokens": 48,
+      "response_snippet": "Na obrazie widzę piękne, naturalne wiatrakowe drzewa z różnorodnymi liśćmi, które tworzą ciekawe i harmonijną paletę barw.",
+      "fail_reasons": []
+    },
+    {
+      "id": "code_fizzbuzz",
+      "category": "coding",
+      "model": "deepseek-coder-v2:16b",
+      "status": "pass",
+      "latency_s": 17.83,
+      "tokens_per_s": 54.4,
+      "tokens": 101,
+      "response_snippet": "```python\ndef fizzbuzz(n):\n    for i in range(1, n + 1):\n        if i % 3 == 0 and i % 5 == 0:\n            print(\"FizzBuzz\")\n        elif i % 3 == 0:\n            print(\"Fizz\")\n        elif i % 5 == 0:",
+      "fail_reasons": []
+    },
+    {
+      "id": "code_palindrome",
+      "category": "coding",
+      "model": "deepseek-coder-v2:16b",
+      "status": "pass",
+      "latency_s": 0.82,
+      "tokens_per_s": 56.5,
+      "tokens": 25,
+      "response_snippet": "```python\ndef is_palindrome(s):\n    return s == s[::-1]\n```",
+      "fail_reasons": []
+    },
+    {
+      "id": "rag_python_dict",
+      "category": "knowledge",
+      "model": "deepseek-coder-v2:16b",
+      "status": "pass",
+      "latency_s": 2.04,
+      "tokens_per_s": 52.4,
+      "tokens": 88,
+      "response_snippet": "Złożoność czasowa wyszukiwania klucza w słowniku (dict) w Pythonie to O(1). Słowniki w Pythonie są implementowane jako tablice haszujące, co pozwala na dostęp do elementów w średnim przypadku w stałym",
+      "fail_reasons": []
+    },
+    {
+      "id": "rag_http_codes",
+      "category": "knowledge",
+      "model": "deepseek-coder-v2:16b",
+      "status": "fail",
+      "latency_s": 1.93,
+      "tokens_per_s": 54.9,
+      "tokens": 95,
+      "response_snippet": "HTTP 429 to kod odpowiedzi HTTP, który informuje klienta, że serwer odrzucił jego żądanie ze względu na zbyt wiele nieudanych prób połączenia lub żądań w określonym czasie (np. \"za dużo prośb\").",
+      "fail_reasons": [
+        "substring miss: 'Too Many Requests'"
+      ]
+    },
+    {
+      "id": "reason_math",
+      "category": "reasoning",
+      "model": "deepseek-coder-v2:16b",
+      "status": "pass",
+      "latency_s": 5.81,
+      "tokens_per_s": 53.8,
+      "tokens": 289,
+      "response_snippet": "Aby rozwiązać to zadanie, musimy obliczyć liczbę nóg wszystkich zwierząt w zoo. Możemy to zrobić, sumując liczbę nóg każdego typu zwierzęcia.\n\n1. Obliczenie liczby nóg dla lwów:\n   - Każdy lew ma 4 no",
+      "fail_reasons": []
+    },
+    {
+      "id": "reason_word",
+      "category": "reasoning",
+      "model": "deepseek-coder-v2:16b",
+      "status": "fail",
+      "latency_s": 0.41,
+      "tokens_per_s": 66.9,
+      "tokens": 5,
+      "response_snippet": "odwrotne",
+      "fail_reasons": [
+        "substring miss: 'enihcam'"
+      ]
+    },
+    {
+      "id": "scrape_css_selector",
+      "category": "scraping",
+      "model": "deepseek-coder-v2:16b",
+      "status": "pass",
+      "latency_s": 1.52,
+      "tokens_per_s": 54.7,
+      "tokens": 63,
+      "response_snippet": "Selektor CSS do wybrania wszystkich elementów z ceną wewnątrz `<span class='price'>$10</span>` to:\n\n```css\nspan.price {\n  /* Twój selektor tutaj */\n}\n```",
+      "fail_reasons": []
+    },
+    {
+      "id": "vision_describe",
+      "category": "vision",
+      "model": "deepseek-coder-v2:16b",
+      "status": "pass",
+      "latency_s": 0.84,
+      "tokens_per_s": 54.0,
+      "tokens": 34,
+      "response_snippet": "Widzę kolorowe kwiaty, które są ładnie ułożone w pięknym doniku.",
+      "fail_reasons": []
+    }
+  ],
+  "summary": {
+    "qwen2.5-coder:7b": {
+      "pass": 6,
+      "fail": 2,
+      "skipped": 0,
+      "error": 0,
+      "total_latency": 11.959999999999999,
+      "total_tokens": 210,
+      "pass_rate": 75.0,
+      "avg_latency": 1.49,
+      "avg_tok_per_s": 17.6
+    },
+    "deepseek-coder-v2:16b": {
+      "pass": 6,
+      "fail": 2,
+      "skipped": 0,
+      "error": 0,
+      "total_latency": 31.199999999999996,
+      "total_tokens": 700,
+      "pass_rate": 75.0,
+      "avg_latency": 3.9,
+      "avg_tok_per_s": 22.4
+    }
+  },
+  "timestamp": "2026-06-01T11:54:41.178161"
+}

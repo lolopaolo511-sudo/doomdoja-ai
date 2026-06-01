@@ -1,0 +1,59 @@
+# Zestaw zadań ewaluacyjnych — każde z metodą oceny (substring/regex/exact/range)
+
+tasks:
+  # ── Coding ──────────────────────────────────────────────────────────────────
+  - id: code_fizzbuzz
+    category: coding
+    prompt: "Napisz funkcję Python fizzbuzz(n) drukującą FizzBuzz od 1 do n. Zwróć TYLKO kod."
+    expected_substring: "def fizzbuzz"
+    expected_regex: "(?:Fizz|fizz).*(?:Buzz|buzz)"
+    timeout_s: 60
+
+  - id: code_palindrome
+    category: coding
+    prompt: "Napisz funkcję is_palindrome(s) w Python. Zwróć TYLKO kod (bez wyjaśnień)."
+    expected_substring: "def is_palindrome"
+    expected_regex: "(?:return|==).*\\[::-1\\]"
+    timeout_s: 60
+
+  # ── Knowledge / RAG-like ────────────────────────────────────────────────────
+  - id: rag_python_dict
+    category: knowledge
+    prompt: "W Pythonie: jaki jest złożoność czasowa wyszukiwania w dict? Odpowiedz krótko."
+    expected_substring: "O(1)"
+    timeout_s: 30
+
+  - id: rag_http_codes
+    category: knowledge
+    prompt: "Co oznacza HTTP 429? Jedno zdanie."
+    expected_substring: "Too Many Requests"
+    timeout_s: 30
+
+  # ── Reasoning ───────────────────────────────────────────────────────────────
+  - id: reason_math
+    category: reasoning
+    prompt: "Zoo ma 12 lwów i 8 zebr. Każdy lew ma 4 nogi, każda zebra 4 nogi. Ile łącznie nóg? Odpowiedz tylko liczbą."
+    expected_substring: "80"
+    timeout_s: 30
+
+  - id: reason_word
+    category: reasoning
+    prompt: "Słowo 'machine' przeczytane wspak to: (odpowiedz tylko tym słowem)"
+    expected_substring: "enihcam"
+    timeout_s: 30
+
+  # ── Scrape-related (offline) ────────────────────────────────────────────────
+  - id: scrape_css_selector
+    category: scraping
+    prompt: "Jakim selektorem CSS pobrać wszystkie ceny ze strony, gdzie cena jest w <span class='price'>$10</span>? Odpowiedz tylko selektorem."
+    expected_substring: "span.price"
+    timeout_s: 30
+
+  # ── Vision (opcjonalnie, jeśli llava dostępny) ──────────────────────────────
+  - id: vision_describe
+    category: vision
+    prompt: "Opisz co widzisz na obrazie (1 zdanie)."
+    image_path: "~/qwen-vision/samples/sample.png"
+    expected_substring: "."  # any non-empty
+    timeout_s: 90
+    optional: true

@@ -1,5 +1,32 @@
 # doomdoja-ai — Indeks systemu AI
-> Ostatnia aktualizacja: 2026-06-01
+> Ostatnia aktualizacja: 2026-06-01 (po rozbudowie ETAPy 1/2/3/6/7/8)
+
+## ⭐ NOWE komponenty (rozbudowa 2026-06-01)
+
+| Etap | Ścieżka | Opis | Status | Wymaga do live |
+|------|---------|------|--------|----------------|
+| **1** | `~/qwen-agent/prospecting/` | Auto-prospecting Upwork: scrape→score→proposal→Airtable | ✅ działa (mock+dryrun) | `UPWORK_COOKIE`, `AIRTABLE_PAT` |
+| **2** | `~/scraper-product/portal/` | Portal klienta FastAPI (multi-tenant, raporty) | ✅ działa | — (Tailscale do zdalnego dostępu) |
+| **3** | `~/qwen-vision/service/` | Document automation: upload→llava→JSON+raport | ✅ działa | — (llava już lokalnie) |
+| **6** | `~/qwen-agent/browser/` | Agent steruje Playwright (navigate/click/fill_form) | ✅ działa | — |
+| **7** | `~/qwen-agent/self_improve/` | Loguje błędy, generuje propozycje poprawek (DO REVIEW) | ✅ działa | — |
+| **8** | `~/qwen-agent/evals/` | Eval harness: zadania YAML, pass/fail + tok/s, porównanie modeli | ✅ działa | — |
+
+**Demo każdego etapu:**
+```bash
+# ETAP 1
+cd ~/qwen-agent/prospecting && python3 run_prospecting.py --no-llm
+# ETAP 2
+cd ~/scraper-product/portal && python3 main.py  # → http://localhost:8010
+# ETAP 3
+cd ~/qwen-vision/service && python3 main.py     # → http://localhost:8020
+# ETAP 6
+cd ~/qwen-agent/browser && python3 demo.py
+# ETAP 7
+cd ~/qwen-agent/self_improve && python3 demo.py
+# ETAP 8
+cd ~/qwen-agent/evals && python3 runner.py --models qwen2.5-coder:7b
+```
 
 ---
 
@@ -14,7 +41,7 @@
 | **Open WebUI** | `http://localhost:3000` — uruchom: `~/openwebui-setup/start.sh` |
 | **Tailscale** | VPN do zdalnego dostępu |
 | **Airtable** | CRM / baza leadów (konfiguracja w `.env`) |
-| **n8n** | Workflow automation / webhooki follow-up |
+| **Make.com** | Workflow automation / webhooki follow-up (cloud, plan darmowy) |
 
 ---
 
@@ -29,7 +56,7 @@
   python3 ~/qwen-agent/multiagent/orchestrator.py "..." --plan-only   # dry-run
   ```
 - **Profile:** `~/qwen-agent/prompt-library/` — `01-lead-generation`, itd.
-- **Zależności:** Ollama, Airtable API, n8n webhook
+- **Zależności:** Ollama, Airtable API, Make.com webhook
 
 ### 🕷️ qwen-scraper — Pipeline scrapingowy
 - **Ścieżka:** `~/qwen-scraper/`
@@ -67,7 +94,7 @@
 - **Ścieżka:** `~/scraper-product/`
 - **Git:** lokalnie tylko (brak remote)
 - **Uruchomienie:** `python3 pipeline/main.py --config config.yaml`
-- **Wyjścia:** Excel + PDF raporty, Airtable, Slack/email, n8n workflow
+- **Wyjścia:** Excel + PDF raporty, Airtable, Slack/email, Make.com workflow
 - **Konfiguracja:** `config.yaml` + `.env` (secrets — nigdy do gita)
 
 ### 🌐 openwebui-setup — Open WebUI (UI dla Ollamy)

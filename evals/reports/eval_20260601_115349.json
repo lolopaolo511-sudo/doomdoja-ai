@@ -1,0 +1,44 @@
+{
+  "results": [
+    {
+      "id": "reason_math",
+      "category": "reasoning",
+      "model": "qwen2.5-coder:7b",
+      "status": "fail",
+      "latency_s": 10.62,
+      "tokens_per_s": 32.1,
+      "tokens": 3,
+      "response_snippet": "76",
+      "fail_reasons": [
+        "substring miss: '80'"
+      ]
+    },
+    {
+      "id": "reason_word",
+      "category": "reasoning",
+      "model": "qwen2.5-coder:7b",
+      "status": "fail",
+      "latency_s": 0.41,
+      "tokens_per_s": 26.6,
+      "tokens": 5,
+      "response_snippet": "enamihc",
+      "fail_reasons": [
+        "substring miss: 'enihcam'"
+      ]
+    }
+  ],
+  "summary": {
+    "qwen2.5-coder:7b": {
+      "pass": 0,
+      "fail": 2,
+      "skipped": 0,
+      "error": 0,
+      "total_latency": 11.03,
+      "total_tokens": 8,
+      "pass_rate": 0.0,
+      "avg_latency": 5.51,
+      "avg_tok_per_s": 0.7
+    }
+  },
+  "timestamp": "2026-06-01T11:53:49.955223"
+}
