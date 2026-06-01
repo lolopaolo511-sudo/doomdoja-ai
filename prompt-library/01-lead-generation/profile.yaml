@@ -9,7 +9,7 @@ models:
 tools:
   - playwright_scrape
   - airtable_write
-  - n8n_webhook
+  - make_webhook
   - search_web
 
 paths:
@@ -19,8 +19,8 @@ paths:
 integrations:
   airtable:
     tables: [Leads, FollowUps]
-  n8n:
-    webhook_env: N8N_WEBHOOK_URL
+  make:
+    webhook_env: MAKE_WEBHOOK_URL
   telegram:
     optional: true
 

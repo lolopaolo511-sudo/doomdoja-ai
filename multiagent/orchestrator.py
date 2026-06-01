@@ -128,7 +128,7 @@ def plan_only(task: str, profile: Profile | None, work_dir: Path) -> dict:
 
     log(f"Zadanie    : {task}", "")
     log("Prompty załadowane pomyślnie.", "")
-    log("UWAGA: realne uruchomienie wymaga Ollamy + kluczy Airtable/n8n.", "")
+    log("UWAGA: realne uruchomienie wymaga Ollamy + kluczy Airtable/Make.com.", "")
 
     result = {
         "task": task,

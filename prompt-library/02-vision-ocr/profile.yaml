@@ -10,7 +10,7 @@ models:
 tools:
   - vision_cli
   - airtable_write
-  - n8n_webhook
+  - make_webhook
 
 paths:
   vision_cli: ~/qwen-agent/tools/vision_cli.py
@@ -20,8 +20,8 @@ paths:
 integrations:
   airtable:
     tables: [Invoices, CVs, Reports]
-  n8n:
-    webhook_env: N8N_WEBHOOK_URL
+  make:
+    webhook_env: MAKE_WEBHOOK_URL
   launchd:
     plist: ~/Library/LaunchAgents/com.qwen.vision-watch.plist
 

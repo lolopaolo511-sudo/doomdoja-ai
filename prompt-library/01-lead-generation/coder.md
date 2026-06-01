@@ -1,1 +1,1 @@
-Napisz kod Python (ReAct style): Użyj Playwright do scrape; Oblicz score (firmographics + intent); Generuj wiadomość z template + {lead_data}; Zapisz do Airtable via API; Wyślij webhook do n8n (follow-up reminder). Użyj istniejących funkcji z ~/qwen-agent/tools/.
+Napisz kod Python (ReAct style): Użyj Playwright do scrape; Oblicz score (firmographics + intent); Generuj wiadomość z template + {lead_data}; Zapisz do Airtable via API; Wyślij webhook do Make.com (follow-up reminder). Użyj istniejących funkcji z ~/qwen-agent/tools/.

@@ -1,20 +1,29 @@
 # Integracja: Vision/OCR Pipeline
 
 ## Przepływ
-launchd + n8n (folder watch → agent → Airtable dashboard)
+launchd + Make.com (folder watch → agent → Airtable dashboard)
 
 ## Przepływ szczegółowy
 1. launchd plist monitoruje folder `~/incoming-docs/`
 2. Nowy plik → wywołanie `vision_cli.py` z path jako argumentem
 3. Agent wybiera model (qwen-vision dla obrazów, nomic dla tekstów)
 4. JSON output → walidacja confidence → zapis do Airtable
-5. Webhook do n8n → generacja raportu PDF → zapis do tabeli Reports
+5. Make.com HTTP webhook → generacja raportu PDF → zapis do tabeli Reports
 
-## Wymagane klucze (environment variables)
-- `AIRTABLE_API_KEY` — Personal Access Token
-- `AIRTABLE_BASE_ID` — ID bazy
-- `N8N_WEBHOOK_URL` — URL webhooka n8n
-- `OLLAMA_URL` — URL Ollama (domyślnie http://localhost:11434)
+## Make.com — jak podłączyć
+1. Nowe scenario → **Webhooks → Custom webhook** → skopiuj URL
+2. Wklej jako `MAKE_WEBHOOK_URL` w `.env`
+3. Moduły po webhoku: **Airtable → Create Record** + opcjonalnie **Email → Send**
+
+## Wymagane klucze (plik `.env` w ~/qwen-agent/)
+```bash
+AIRTABLE_API_KEY=<twój_token>
+AIRTABLE_BASE_ID=<twoje_base_id>
+MAKE_API_TOKEN=<twój_make_token>
+MAKE_WEBHOOK_URL=<url_webhooka_ze_scenario>
+OLLAMA_URL=http://localhost:11434
+```
+Rzeczywiste wartości — patrz `~/qwen-agent/.env` (plik lokalny, poza git).
 
 ## Tabele Airtable
 - **Invoices**: Vendor, Date, Total, Currency, Items (JSON), Confidence, ImagePath, ProcessedAt
@@ -24,3 +33,15 @@ launchd + n8n (folder watch → agent → Airtable dashboard)
 ## Model vision
 - Wymagany model Ollama: `llava` lub `qwen2.5vl` (sprawdź `ollama list`)
 - Fallback: `bakllava` dla starszych systemów
+
+## launchd plist (przykład)
+```xml
+<!-- ~/Library/LaunchAgents/com.qwen.vision-watch.plist -->
+<key>WatchPaths</key>
+<array><string>/Users/doomdoja/incoming-docs</string></array>
+<key>ProgramArguments</key>
+<array>
+  <string>/usr/bin/python3</string>
+  <string>/Users/doomdoja/qwen-agent/tools/vision_cli.py</string>
+</array>
+```

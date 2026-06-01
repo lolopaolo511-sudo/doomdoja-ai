@@ -11,7 +11,7 @@ tools:
   - rag_query
   - rag_add_documents
   - airtable_write
-  - n8n_webhook
+  - make_webhook
 
 paths:
   rag_dir: ~/qwen-rag/
@@ -22,8 +22,8 @@ paths:
 integrations:
   airtable:
     tables: [Documents, QueryLog]
-  n8n:
-    webhook_env: N8N_WEBHOOK_URL
+  make:
+    webhook_env: MAKE_WEBHOOK_URL
   dashboard:
     port: 8080
     script: ~/qwen-rag/dashboard.py

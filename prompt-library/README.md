@@ -1,7 +1,7 @@
 # Prompt Library — qwen-agent Multi-Agent System
 
 Biblioteka profili projektowych dla systemu multi-agent (Planner + Coder + Reviewer + ReAct)
-działającego na Ollama (deepseek-coder-v2 / qwen2.5) z integracjami n8n + Airtable + GitHub.
+działającego na Ollama (deepseek-coder-v2 / qwen2.5) z integracjami Make.com + Airtable + GitHub.
 
 ## Struktura
 
@@ -21,7 +21,7 @@ Każdy profil zawiera:
 | `coder.md`      | Prompt dla roli Coder — implementacja                     |
 | `reviewer.md`   | Prompt dla roli Reviewer — ocena i poprawki               |
 | `example-task.md` | Przykładowe zadanie do testów                           |
-| `integration.md` | Integracje (n8n, Airtable, launchd) i wymagane klucze   |
+| `integration.md` | Integracje (Make.com, Airtable, launchd) i wymagane klucze   |
 | `profile.yaml`  | Metadane: modele, narzędzia, ścieżki, tabele Airtable     |
 
 ## Użycie z orchestratorem
@@ -30,7 +30,7 @@ Każdy profil zawiera:
 # Uruchom z profilem (dry-run — nie wymaga kluczy)
 python3 multiagent/orchestrator.py "zadanie" --profile 01-lead-generation --plan-only
 
-# Pełne uruchomienie (wymaga Ollamy + kluczy Airtable/n8n)
+# Pełne uruchomienie (wymaga Ollamy + kluczy Airtable/Make.com)
 python3 multiagent/orchestrator.py "Znajdź 20 firm AI" --profile 01-lead-generation
 
 # Vision OCR
@@ -43,17 +43,17 @@ python3 multiagent/orchestrator.py "Jaka jest polityka urlopowa?" --profile 03-r
 ## Profile
 
 ### 01 — Lead Generation & Intelligent Follow-up
-**Cel:** Scrape leadów → score → personalizowany follow-up (email/LinkedIn) → log w Airtable + reminder w n8n.
+**Cel:** Scrape leadów → score → personalizowany follow-up (email/LinkedIn) → log w Airtable + reminder w Make.com.
 
 **Modele:** deepseek-coder-v2:16b  
-**Narzędzia:** Playwright, Airtable API, n8n webhook  
+**Narzędzia:** Playwright, Airtable API, Make.com webhook  
 **Airtable:** tabele Leads + FollowUps
 
 ### 02 — Vision/OCR Pipeline
 **Cel:** Zdjęcie/faktura/CV → strukturyzowany JSON → zapis do Airtable + raport.
 
 **Modele:** deepseek-coder-v2:16b + llava (vision)  
-**Narzędzia:** vision_cli.py, Airtable API, n8n webhook  
+**Narzędzia:** vision_cli.py, Airtable API, Make.com webhook  
 **Airtable:** tabele Invoices + CVs + Reports
 
 ### 03 — RAG Knowledge Base
