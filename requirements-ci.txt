@@ -1,0 +1,5 @@
+# Minimalne zależności dla CI (eval-lite + unit tests)
+# Nie wymaga Ollamy ani żadnego lokalnego modelu
+pytest>=7.4
+pyyaml>=6.0
+httpx>=0.24

@@ -1,0 +1,171 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# CI pipeline — doomdoja-ai
+#
+# Tryby:
+#   eval-lite (domyślny, GitHub-hosted runner):
+#     - Brak Ollamy — mock responses, testuje logikę scoringu
+#     - Zawsze działa w GitHub Actions bez dodatkowej konfiguracji
+#
+#   eval-real (self-hosted runner z Ollama):
+#     - Potrzeba self-hosted runnera z labelką [self-hosted, ollama]
+#     - Jak podłączyć:
+#         1. Na Mac Mini: Settings → Actions → Runners → Add runner
+#         2. Pobierz i uruchom runner wg instrukcji GitHub
+#         3. Ustaw labels: self-hosted, ollama, macos
+#         4. Ollama musi być dostępna na localhost:11434
+#         5. W repozytorium: Settings → Secrets → OLLAMA_RUNNER=true
+#         6. Zmień runs-on poniżej na: [self-hosted, ollama, macos]
+#
+# Bramka pass-rate:
+#   eval-lite:  próg 70% (zawsze spełniany przez mock)
+#   eval-real:  próg 70% (realne modele muszą go utrzymać)
+#   Jeśli pass-rate < 70% → ci/eval-gate kończy się exit code 1 → PR zablokowany
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: CI
+
+on:
+  push:
+    branches: ["main", "dev", "feature/**"]
+  pull_request:
+    branches: ["main"]
+
+# Anuluj poprzednie uruchomienia tego samego PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.11"
+  EVAL_PASS_THRESHOLD: "70"
+
+jobs:
+  # ── 1. Unit tests ───────────────────────────────────────────────────────────
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install --upgrade pip -r requirements-ci.txt
+
+      - name: Run unit tests
+        run: pytest tests/ -v --tb=short
+        working-directory: ${{ github.workspace }}
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results
+          path: .pytest_cache/
+
+  # ── 2. Eval-lite (mock, bez Ollamy — zawsze na GitHub-hosted) ───────────────
+  eval-gate:
+    name: Eval Gate (lite)
+    runs-on: ubuntu-latest
+    needs: unit-tests
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install --upgrade pip -r requirements-ci.txt
+
+      - name: Run eval-lite
+        id: eval_lite
+        env:
+          EVAL_PASS_THRESHOLD: ${{ env.EVAL_PASS_THRESHOLD }}
+        run: |
+          python3 evals/eval_lite.py --threshold ${{ env.EVAL_PASS_THRESHOLD }}
+        working-directory: ${{ github.workspace }}
+        # Exit code 1 jeśli pass-rate < threshold → job fail → PR zablokowany
+
+      - name: Upload eval report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-lite-report
+          path: evals/reports/eval_lite_*.json
+
+  # ── 3. Eval-real (opcjonalny, self-hosted + Ollama) ──────────────────────────
+  #
+  # Odkomentuj i dostosuj runs-on gdy masz self-hosted runnera z Ollama.
+  # Ten job jest warunkowo pomijany (jeśli brak runnera, nie blokuje PR).
+  #
+  # eval-real:
+  #   name: Eval Real (Ollama)
+  #   runs-on: [self-hosted, ollama, macos]
+  #   needs: unit-tests
+  #   if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+  #
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #
+  #     - name: Check Ollama availability
+  #       run: |
+  #         curl -sf http://localhost:11434/api/tags || {
+  #           echo "Ollama niedostępna — pomijam eval-real"
+  #           exit 0
+  #         }
+  #
+  #     - name: Run eval (real model)
+  #       env:
+  #         OLLAMA_URL: http://localhost:11434
+  #         EVAL_PASS_THRESHOLD: ${{ env.EVAL_PASS_THRESHOLD }}
+  #       run: |
+  #         python3 evals/runner.py --models deepseek-coder-v2:16b
+  #         # Sprawdź pass-rate z raportu
+  #         python3 - <<'PYEOF'
+  #         import json, glob, sys
+  #         reports = sorted(glob.glob("evals/reports/eval_*.json"))
+  #         if not reports: sys.exit(0)
+  #         data = json.loads(open(reports[-1]).read())
+  #         threshold = int("${{ env.EVAL_PASS_THRESHOLD }}")
+  #         for model, s in data.get("summary", {}).items():
+  #             pr = s.get("pass_rate", 0)
+  #             print(f"{model}: {pr}%")
+  #             if pr < threshold:
+  #                 print(f"FAIL: {pr}% < {threshold}%")
+  #                 sys.exit(1)
+  #         PYEOF
+  #
+  #     - name: Upload real eval report
+  #       if: always()
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: eval-real-report
+  #         path: evals/reports/eval_*.json
+
+  # ── 4. Status summary ────────────────────────────────────────────────────────
+  ci-summary:
+    name: CI Summary
+    runs-on: ubuntu-latest
+    needs: [unit-tests, eval-gate]
+    if: always()
+
+    steps:
+      - name: Check results
+        run: |
+          echo "unit-tests: ${{ needs.unit-tests.result }}"
+          echo "eval-gate:  ${{ needs.eval-gate.result }}"
+          if [[ "${{ needs.unit-tests.result }}" != "success" ]] || \
+             [[ "${{ needs.eval-gate.result }}" != "success" ]]; then
+            echo "CI FAILED"
+            exit 1
+          fi
+          echo "CI PASSED"
