@@ -14,10 +14,10 @@
 | **Open WebUI** | `http://localhost:3000` — uruchom: `~/openwebui-setup/start.sh` |
 | **Tailscale** | VPN do zdalnego dostępu |
 | **Qdrant** | `http://localhost:6333` — vector DB (Docker) |
-| **n8n** | `http://localhost:5678` — workflow automation / webhooki follow-up |
+| **Make.com** | Workflow automation w chmurze — zastąpił n8n (etap B) |
 | **SearxNG** | `http://localhost:8888` — lokalny search engine dla agentów |
 | **Airtable** | CRM / baza leadów (konfiguracja w `.env`) |
-| **Docker stack** | `~/doomdoja-stack/` — Colima + docker-compose (Qdrant, n8n, SearxNG) |
+| **Docker stack** | `~/doomdoja-stack/` — Colima + docker-compose (Qdrant, SearxNG, Caddy) |
 
 ---
 
