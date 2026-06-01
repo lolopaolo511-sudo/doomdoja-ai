@@ -97,6 +97,41 @@
 
 ---
 
+## Produkcyjne rozszerzenia (2026-06-01)
+
+### 🔒 Caddy — Reverse Proxy HTTPS + Auth (ETAP 1)
+- **Ścieżka:** `~/doomdoja-stack/caddy/Caddyfile`
+- **TLS:** internal CA (self-signed) lub Tailscale cert
+- **Routing:** `/portal/ /docs/ /dashboard/ /chat/` z basic auth (bcrypt)
+- **Uruchomienie:** `docker compose up -d caddy` (w ~/doomdoja-stack)
+- **Dostęp:** `https://doomdojas-mac-mini.taild47341.ts.net/<ścieżka>`
+
+### 🚀 Onboarding klienta — new_client.py (ETAP 3)
+- **Ścieżka:** `~/scraper-product/onboarding/new_client.py`
+- **Użycie:** `python3 onboarding/new_client.py --name "Klient X" [--dry-run]`
+- **Tworzy:** folder klienta, config.yaml, README, make_scenario.md, launchd entry
+- **Klienci:** `~/scraper-product/clients/<slug>/`
+
+### 💳 Stripe billing — portal (ETAP 4)
+- **Ścieżka:** `~/scraper-product/portal/stripe_billing.py`
+- **Routes:** `/billing`, `/billing/checkout`, `/billing/webhook`, `/billing/status`
+- **Tryb MOCK:** domyślny gdy brak kluczy (STRIPE_MOCK=true w .env)
+- **Live:** STRIPE_SECRET_KEY + STRIPE_WEBHOOK_SECRET + STRIPE_PRICE_ID w .env
+
+### 💾 Backup & Restore (ETAP 6)
+- **Ścieżka:** `~/doomdoja-stack/backup/backup.sh` + `restore.sh`
+- **Zakres:** Caddy, n8n, Qdrant snapshots, prompt-library, scraper-product
+- **Launchd:** `com.doomdoja-stack.backup` — codziennie 02:00 → `~/backups/`
+- **Rotacja:** 7 dni. Sekrety: `--encrypt-env` (openssl aes-256-cbc)
+
+### 🔄 CI z bramką eval (ETAP 7)
+- **Ścieżka:** `.github/workflows/ci.yml`
+- **Joby:** unit-tests (pytest 17 testów) + eval-gate (eval_lite.py, próg 70%)
+- **Eval-lite:** mock Ollama, deterministic — działa na GitHub-hosted runner
+- **Eval-real:** zakomentowany — wymaga self-hosted runnera z Ollama (instrukc. w pliku)
+
+---
+
 ## Status GitHub (2026-06-01)
 
 | Projekt | GitHub | Synced |
