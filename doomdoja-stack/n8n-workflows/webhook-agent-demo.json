@@ -1,0 +1,130 @@
+{
+  "name": "Webhook → qwen-agent → save result",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agent-task",
+        "responseMode": "onReceived",
+        "responseData": "allEntries"
+      },
+      "id": "node_webhook",
+      "name": "Webhook: POST /agent-task",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "doomdoja-agent-task"
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:8080/task/create",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "task", "value": "={{ $json.body.task }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node_create_task",
+      "name": "Create agent task",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "ok",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "node_check",
+      "name": "Task created?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:8080/task/run-agent",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "repo", "value": "={{ $('Webhook: POST /agent-task').item.json.body.repo || '/Users/doomdoja/demo-repo' }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node_run_agent",
+      "name": "Run agent on repo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [900, 200]
+    },
+    {
+      "parameters": {
+        "fileName": "/Users/doomdoja/doomdoja-stack/data/n8n/agent-results.jsonl",
+        "append": true,
+        "options": {}
+      },
+      "id": "node_save",
+      "name": "Save result to JSONL",
+      "type": "n8n-nodes-base.writeBinaryFile",
+      "typeVersion": 1,
+      "position": [1120, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"Task creation failed\", \"details\": {{ JSON.stringify($json) }} }"
+      },
+      "id": "node_error",
+      "name": "Return error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [900, 400]
+    }
+  ],
+  "connections": {
+    "Webhook: POST /agent-task": {
+      "main": [[{ "node": "Create agent task", "type": "main", "index": 0 }]]
+    },
+    "Create agent task": {
+      "main": [[{ "node": "Task created?", "type": "main", "index": 0 }]]
+    },
+    "Task created?": {
+      "main": [
+        [{ "node": "Run agent on repo", "type": "main", "index": 0 }],
+        [{ "node": "Return error", "type": "main", "index": 0 }]
+      ]
+    },
+    "Run agent on repo": {
+      "main": [[{ "node": "Save result to JSONL", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "instanceId": "doomdoja-local"
+  }
+}
