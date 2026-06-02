@@ -23,12 +23,21 @@ from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
+_PROJECT_ROOT = str(Path(__file__).parent.parent)
+if _PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, _PROJECT_ROOT)
 
 def _import_llm_modules():
     global plan, plan_resumed, save_state, implement_all_steps, review, run_tests
     from planner import plan, plan_resumed, save_state
     from coder import implement_all_steps
     from reviewer import review, run_tests
+
+try:
+    from router import HybridRouter, RouterContext
+    _ROUTER_AVAILABLE = True
+except ImportError:
+    _ROUTER_AVAILABLE = False
 
 PROMPT_LIBRARY_DIR = Path(__file__).parent.parent / "prompt-library"
 
@@ -144,9 +153,21 @@ def orchestrate(
     verify: bool = True,
     max_verify_rounds: int = 3,
     resume: bool = False,
+    force_local: bool = False,
 ) -> dict:
     work_dir.mkdir(parents=True, exist_ok=True)
     started = datetime.now().isoformat()
+
+    # ── ROUTER INIT ───────────────────────────────────────────────────────────
+    router = HybridRouter() if _ROUTER_AVAILABLE else None
+    verifier_fail_counts: dict[int, int] = {}  # step_id → ile razy verifier zawiódł
+
+    if router:
+        initial_ctx = RouterContext(force_local=force_local)
+        initial_decision = router.choose_model(task, context=initial_ctx)
+        log(f"Router: {initial_decision.summary()}", "router")
+        if not initial_decision.cloud_available:
+            log("Router: tryb LOCAL-ONLY (ANTHROPIC_API_KEY nie ustawiony)", "router")
 
     if profile:
         profile.describe()
@@ -275,9 +296,22 @@ def orchestrate(
                     # Zbierz wskazówki i przekaż do codera
                     fix_hints = v.collect_fix_hints(work_dir)
                     if fix_hints:
+                        # ── ROUTER: sprawdź czy eskalować do cloud ────────────────
+                        step_id_v = 100 + vround
+                        verifier_fail_counts[step_id_v] = vround
+                        if router:
+                            v_ctx = RouterContext(
+                                step_id=step_id_v,
+                                step_title=f"verifier-fix runda {vround}",
+                                verifier_fails=vround,
+                                force_local=force_local,
+                            )
+                            v_decision = router.choose_model(task, context=v_ctx)
+                            log(f"Router (verifier-fix): {v_decision.summary()}", "router")
+
                         log(f"Przekazuję wskazówki naprawcze do codera...", "verifier")
                         fix_step = {
-                            "id": 100 + vround,
+                            "id": step_id_v,
                             "title": f"Naprawki verifier (runda {vround})",
                             "description": fix_hints,
                             "file": list(code_files.keys())[0] if code_files else "main.py",
@@ -300,6 +334,12 @@ def orchestrate(
 
     # ── PODSUMOWANIE ──────────────────────────────────────────────────────────
     overall_ok = review_result["approved"] and verifier_passed
+
+    # Raport routera
+    router_report = router.get_report() if router else "(router niedostępny)"
+    if router:
+        log(router_report, "router")
+
     result = {
         "task": task,
         "profile": profile.name if profile else None,
@@ -314,6 +354,7 @@ def orchestrate(
         "overall_approved": overall_ok,
         "rounds": round_num if "round_num" in dir() else 0,
         "issues": review_result["issues"],
+        "router_report": router_report,
         "started": started,
         "finished": datetime.now().isoformat(),
     }
@@ -353,6 +394,8 @@ def main():
                         help="Max rund poprawek verifier (domyślnie: 3)")
     parser.add_argument("--resume", action="store_true",
                         help="Wznów przerwane zadanie z --work-dir/plan_state.json")
+    parser.add_argument("--force-local", action="store_true", default=False,
+                        help="Wymuś lokalny model dla całego zadania (prywatność/offline)")
     args = parser.parse_args()
 
     # --no-verify wyłącza weryfikację
@@ -383,6 +426,7 @@ def main():
         verify=verify_enabled,
         max_verify_rounds=args.max_verify_rounds,
         resume=args.resume,
+        force_local=args.force_local,
     )
     sys.exit(0 if result["overall_approved"] else 1)
 

@@ -8,19 +8,20 @@
 
 1. [Tabela portów i adresów](#tabela-portów)
 2. [Lokalny agent / multi-agent](#lokalny-agent--multi-agent)
-3. [aider — autonomiczny koder](#aider--autonomiczny-koder)
-4. [Continue.dev — IDE autocomplete](#continuedev--ide-autocomplete)
-5. [Scraper (qwen-scraper)](#scraper-qwen-scraper)
-6. [Pipeline scraper-product](#pipeline-scraper-product)
-7. [RAG (qwen-rag)](#rag-qwen-rag)
-8. [Vision / OCR (qwen-vision)](#vision--ocr-qwen-vision)
-9. [Gig Finder](#gig-finder)
-10. [Dashboard (:8080)](#dashboard-8080)
-11. [Open WebUI — czat (:3000)](#open-webui--czat-3000)
-12. [Stack Docker (doomdoja-stack)](#stack-docker-doomdoja-stack)
-13. [Portal klientów](#portal-klientów)
-14. [Jak rozmawiać z lokalnym agentem](#jak-rozmawiać-z-lokalnym-agentem)
-15. [Codzienny workflow](#codzienny-workflow)
+3. [Hybrid Router — local vs cloud](#hybrid-router--local-vs-cloud)
+4. [aider — autonomiczny koder](#aider--autonomiczny-koder)
+5. [Continue.dev — IDE autocomplete](#continuedev--ide-autocomplete)
+6. [Scraper (qwen-scraper)](#scraper-qwen-scraper)
+7. [Pipeline scraper-product](#pipeline-scraper-product)
+8. [RAG (qwen-rag)](#rag-qwen-rag)
+9. [Vision / OCR (qwen-vision)](#vision--ocr-qwen-vision)
+10. [Gig Finder](#gig-finder)
+11. [Dashboard (:8080)](#dashboard-8080)
+12. [Open WebUI — czat (:3000)](#open-webui--czat-3000)
+13. [Stack Docker (doomdoja-stack)](#stack-docker-doomdoja-stack)
+14. [Portal klientów](#portal-klientów)
+15. [Jak rozmawiać z lokalnym agentem](#jak-rozmawiać-z-lokalnym-agentem)
+16. [Codzienny workflow](#codzienny-workflow)
 
 ---
 
@@ -76,6 +77,83 @@ PYTHONPATH=/tmp python3 orchestrator.py "zadanie" --plan-only --work-dir /tmp/te
 - `ModuleNotFoundError: No module named 'qwen_agent'` → `ln -sf ~/qwen-agent /tmp/qwen_agent`
 - Timeout → zmniejsz zadanie lub użyj `--max-rounds 1`
 - Niekompletny plik → dla HTML/Frontend lokalny 16B model generuje fragmenty, nie pełne pliki
+
+---
+
+## Hybrid Router — local vs cloud
+
+**Co robi:** automatycznie wybiera backend LLM (lokalny Ollama lub cloud Claude) per krok zadania, zależnie od złożoności, prywatności i historii verifier.
+
+### Aktywacja cloud fallback
+
+```bash
+# Dodaj do .env (NIE commituj klucza!)
+echo "ANTHROPIC_API_KEY=sk-ant-..." >> ~/qwen-agent/.env
+
+# Lub jednorazowo w sesji
+export ANTHROPIC_API_KEY=sk-ant-...
+```
+
+Bez klucza → **tryb LOCAL-ONLY** (bezpieczny default, router działa normalnie, nie crashuje, loguje ostrzeżenie).
+
+### Wymuszenie lokalnego modelu
+
+```bash
+# Dla całego zadania (np. dane klienta, prywatny kod)
+cd ~/qwen-agent/multiagent
+python3 orchestrator.py "zadanie" --force-local
+
+# Router automatycznie wymusza local gdy wykryje słowa wrażliwe:
+# hasło/password/secret/token/PESEL/credential/bearer → zawsze local
+```
+
+### Demo decyzji routera (bez realnego LLM)
+
+```bash
+python3 ~/qwen-agent/router/demo.py
+```
+
+Wyświetla 5 scenariuszy: prosty→local, złożony→cloud, eskalacja, brak klucza, dane wrażliwe.
+
+### Jak czytać raport routingu
+
+Na końcu każdego zadania orchestrator drukuje:
+
+```
+[ROUTER ] ╔═══════════════════════════════════════════════════════╗
+[ROUTER ] ║          ROUTER — Raport decyzji sesji                ║
+[ROUTER ] ╚═══════════════════════════════════════════════════════╝
+[ROUTER ]   Krok 1 (planner):
+[ROUTER ]     Backend : 🏠 LOCAL
+[ROUTER ]     Model   : qwen2.5-coder:7b
+[ROUTER ]     Powód   : lokalny: score=1 < próg=6
+[ROUTER ]   Krok 2 (verifier-fix runda 1):
+[ROUTER ]     Backend : ☁️  CLOUD
+[ROUTER ]     Model   : claude-opus-4-8
+[ROUTER ]     Powód   : eskalacja: verifier zawiódł 2x (próg: 2)
+[ROUTER ]   Podsumowanie: LOCAL=1  CLOUD=1  eskalacje=1  privacy-protected=0
+```
+
+### Dostrojenie progów
+
+Edytuj `~/qwen-agent/router/config.yaml`:
+
+```yaml
+thresholds:
+  complexity_score_cloud: 6   # score >= 6 → cloud (obniż aby częściej używać cloud)
+  verifier_fails_escalate: 2  # po 2 porażkach verifier → cloud
+  task_length_complex: 500    # znaki — powyżej tej długości +1 pkt złożoności
+
+cloud:
+  model: "claude-opus-4-8"   # model cloud (zmień np. na claude-sonnet-4-6)
+```
+
+### Testy routera (mock cloud, bez kluczy)
+
+```bash
+cd ~/qwen-agent
+python3 -m pytest tests/test_router.py -v   # 23/23 PASS
+```
 
 ---
 

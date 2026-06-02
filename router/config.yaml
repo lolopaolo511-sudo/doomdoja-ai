@@ -1,0 +1,86 @@
+# Hybrid Router — konfiguracja progów i modeli
+# Edytuj aby dostroić kiedy zadania trafiają local vs cloud.
+
+thresholds:
+  # Wynik złożoności >= tej wartości → preferuj cloud (o ile dostępny)
+  complexity_score_cloud: 6
+  # Liczba nieudanych rund verifier → eskalacja do cloud
+  verifier_fails_escalate: 2
+  # Długość zadania (znaki) powyżej której dodawany jest punkt złożoności
+  task_length_complex: 500
+  # Liczba kroków z plannera >= tej wartości → +2 pkt złożoności
+  steps_complex: 4
+  # Maksymalny wynik złożoności (cap)
+  max_complexity_score: 10
+
+local:
+  model: "deepseek-coder-v2:16b"
+  fast_model: "qwen2.5-coder:7b"
+  url: "http://localhost:11434"
+
+cloud:
+  provider: "anthropic"
+  model: "claude-opus-4-8"
+  # Nazwa zmiennej środowiskowej z kluczem API (nigdy nie wpisuj klucza tutaj)
+  api_key_env: "ANTHROPIC_API_KEY"
+  timeout_s: 120
+
+privacy:
+  # Słowa-klucze wymuszające local (case-insensitive). Nigdy nie idą do cloud.
+  # Użyj rdzeni polskich słów żeby łapać różne odmiany (hasł → hasło/hasła/hasłami).
+  sensitive_keywords:
+    - "hasł"             # hasło/a/em/ami
+    - "password"
+    - "secret"
+    - "token"
+    - "api_key"
+    - "pesel"
+    - "klucz api"
+    - "prywatny"
+    - "prywatne"
+    - "credential"
+    - "confidential"
+    - "konfidencjonalne"
+    - "private key"
+    - "ssh key"
+    - "bearer"
+    - "authorization"
+
+complexity:
+  # Słowa/frazy sugerujące wysoką złożoność (+1 pkt każde, max 5 łącznie).
+  # Używaj rdzeni żeby łapać odmiany: "architektur" → architektura/ę/y/ze itd.
+  high_complexity_keywords:
+    - "cała aplikac"     # cała aplikacja/ę
+    - "full application"
+    - "architektur"      # architektura/ę/y
+    - "architecture"
+    - "refactor"
+    - "refaktoryzac"     # refaktoryzacja/ę
+    - "system"
+    - "integrac"         # integracja/ę/i
+    - "integration"
+    - "debug"
+    - "wielowątkow"      # wielowątkowy/a
+    - "concurrent"
+    - "async"
+    - "danych"            # baza/y/ą danych (rdzeń zawsze "danych")
+    - "database"
+    - "deployment"
+    - "wdrożen"          # wdrożenie/ia
+    - "optymalizac"      # optymalizacja/ę
+    - "optimization"
+    - "skomplikow"       # skomplikowany/a
+    - "complex"
+  # Słowa sugerujące niską złożoność (-1 pkt za grupę, max -2)
+  low_complexity_keywords:
+    - "prosty"
+    - "simple"
+    - "szybki skrypt"
+    - "quick script"
+    - "jednolinijkowy"
+    - "one-liner"
+    - "print"
+    - "konwersj"         # konwersja/ę
+    - "convert"
+    - "zmień nazwę"
+    - "rename"
