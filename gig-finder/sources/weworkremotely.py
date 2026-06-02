@@ -2,11 +2,22 @@
 from __future__ import annotations
 
 import hashlib
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 
 import feedparser
 import httpx
 
 from . import Gig
+
+
+def _parse_rfc2822(s: str) -> datetime | None:
+    if not s:
+        return None
+    try:
+        return parsedate_to_datetime(s).replace(tzinfo=timezone.utc)
+    except Exception:
+        return None
 
 _RSS_URLS = {
     "programming": "https://weworkremotely.com/categories/remote-programming-jobs.rss",
@@ -44,6 +55,8 @@ def fetch(cfg: dict) -> list[Gig]:
 
             description = _clean(entry.get("summary", ""))
             entry_id = hashlib.md5(link.encode()).hexdigest()[:12]
+            pub_str = entry.get("published", "")
+            posted_dt = _parse_rfc2822(pub_str)
 
             gigs.append(Gig(
                 id=f"wwr_{entry_id}",
@@ -52,7 +65,8 @@ def fetch(cfg: dict) -> list[Gig]:
                 description=f"{company}\n{description}" if company else description,
                 budget="n/a",
                 source="WeWorkRemotely",
-                posted_at=entry.get("published", ""),
+                posted_at=posted_dt.strftime("%Y-%m-%d") if posted_dt else pub_str[:10],
+                posted_dt=posted_dt,
                 tags=_extract_tags(entry),
             ))
 

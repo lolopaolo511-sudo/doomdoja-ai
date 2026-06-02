@@ -25,7 +25,6 @@ profile:
     - FastAPI
     - crawler
 
-  # Słowa mocnego dopasowania (każde daje +2 do fit)
   strong_match_keywords:
     - scraping
     - crawler
@@ -45,7 +44,6 @@ profile:
     - ETL
     - playwright
 
-  # Słowa wykluczające
   avoid_keywords:
     - wordpress only
     - react native
@@ -56,6 +54,25 @@ profile:
     - blockchain
     - smart contract
     - crypto
+
+filters:
+  # Domeny całkowicie zablokowane — etatowe agregatory i LinkedIn
+  blocked_domains:
+    - linkedin.com
+    - cataloxy.pl
+    - pracuj.pl
+    - rocketjobs.pl
+    - goldenline.pl
+    - nofluffjobs.com
+    - justjoin.it
+    - indeed.com
+    - glassdoor.com
+    - monster.com
+    - careerbuilder.com
+    - ziprecruiter.com
+    - theladders.com
+  # Odrzucaj ogłoszenia starsze niż N dni (null = brak filtru)
+  max_age_days: 7
 
 sources:
   remoteok:
@@ -97,28 +114,43 @@ sources:
     enabled: true
     url: "http://localhost:8888"
     queries:
-      - "python web scraping freelance job"
-      - "data extraction automation contract"
-      - "airtable automation developer"
-      - "make.com zapier automation freelancer"
-      - "lead generation scraping python"
+      - "python web scraping freelance contract"
+      - "data extraction automation freelancer hire"
+      - "airtable automation developer contract"
+      - "make.com zapier n8n automation project"
+      - "lead generation scraping python remote"
     max_per_query: 5
+
+  reddit_forhire:
+    enabled: true
+    max_posts: 50
+
+  remotive:
+    enabled: true
+    categories:
+      - software-dev
+      - data
+    search: "python scraping automation"
+    max_jobs: 30
+
+  freelancer:
+    enabled: true            # próbuje bez auth; z FREELANCER_OAUTH_TOKEN w .env pełny dostęp
+    max_jobs: 20
 
 scoring:
   use_llm: true
-  model: "deepseek-coder-v2:16b"       # model Ollama do oceny
+  model: "deepseek-coder-v2:16b"
   ollama_url: "http://localhost:11434"
-  fit_threshold: 6                      # min fit score (0-10) do raportu
-  llm_timeout: 45                       # sekundy
+  fit_threshold: 6
+  llm_timeout: 45
 
 report:
-  top_n: 15                             # max pozycji w raporcie
+  top_n: 15
   output_dir: "reports"
   formats:
     - markdown
     - html
 
 delivery:
-  # Webhook Make.com — ustaw MAKE_WEBHOOK_URL w .env
   webhook_enabled: false
-  dry_run_if_no_url: true              # wyświetla payload zamiast wysyłać
+  dry_run_if_no_url: true

@@ -110,7 +110,7 @@ _HTML_TEMPLATE = """\
   <div class="meta-row">
     <span>📦 {{ item.gig.source }}</span>
     <span>💰 {{ item.gig.budget }}</span>
-    {% if item.gig.posted_at %}<span>📅 {{ item.gig.posted_at[:10] }}</span>{% endif %}
+    <span>📅 {% if item.gig.posted_at %}{{ item.gig.posted_at[:10] }} · {% endif %}{{ item.gig.age_str() }}</span>
   </div>
   <div class="why">🎯 <strong>Dopasowanie:</strong> {{ item.score.why_fits }}</div>
   {% if item.score.offer_angle != 'N/A' %}
@@ -205,7 +205,7 @@ def _render_md(
             f"**Źródło:** {g.source}  ",
             f"**Budżet:** {g.budget}  ",
             f"**Link:** <{g.url}>  ",
-            f"**Data:** {g.posted_at or '—'}  ",
+            f"**Data:** {g.posted_at or '—'}  ({g.age_str()})  ",
             f"**Oceniono:** {s.scored_by}  ",
             "",
             f"**Dlaczego pasuje:** {s.why_fits}",

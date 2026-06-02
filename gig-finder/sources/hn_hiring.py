@@ -7,10 +7,22 @@ from __future__ import annotations
 
 import hashlib
 import re
+from datetime import datetime, timezone
 
 import httpx
 
 from . import Gig
+
+
+def _parse_iso(s: str) -> datetime | None:
+    if not s:
+        return None
+    for fmt in ("%Y-%m-%dT%H:%M:%S.%fZ", "%Y-%m-%dT%H:%M:%SZ", "%Y-%m-%dT%H:%M:%S"):
+        try:
+            return datetime.strptime(s[:26], fmt).replace(tzinfo=timezone.utc)
+        except ValueError:
+            continue
+    return None
 
 _ALGOLIA_SEARCH = "https://hn.algolia.com/api/v1/search"
 _HN_ITEM = "https://hacker-news.firebaseio.com/v0/item/{}.json"
@@ -38,6 +50,7 @@ def fetch(cfg: dict) -> list[Gig]:
         cid = str(c.get("objectID", c.get("id", "")))
         title = _extract_title(text)
         gig_id = hashlib.md5(cid.encode()).hexdigest()[:12]
+        created_at = c.get("created_at", "")
 
         gigs.append(Gig(
             id=f"hn_{gig_id}",
@@ -46,7 +59,8 @@ def fetch(cfg: dict) -> list[Gig]:
             description=_clean_html(text)[:1200],
             budget=_extract_salary(text),
             source="HN: Who Is Hiring",
-            posted_at=c.get("created_at", ""),
+            posted_at=created_at[:10] if created_at else "",
+            posted_dt=_parse_iso(created_at),
             tags=_extract_tech_tags(text),
         ))
 

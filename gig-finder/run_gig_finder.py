@@ -15,17 +15,18 @@ from __future__ import annotations
 import argparse
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import urlparse
 
 import yaml
 
-# Ścieżka modułu
 _DIR = Path(__file__).parent
 sys.path.insert(0, str(_DIR))
 
 from sources import Gig
 from sources import remoteok, weworkremotely, hn_hiring, upwork_rss, searxng
+from sources import reddit_forhire, remotive, freelancer
 from scorer import score, GigScore
 from reporter import RankedGig, generate
 from webhook import deliver
@@ -53,6 +54,43 @@ def load_env() -> None:
             break
 
 
+def _domain(url: str) -> str:
+    try:
+        return urlparse(url).netloc.lower().removeprefix("www.")
+    except Exception:
+        return ""
+
+
+def filter_gigs(gigs: list[Gig], cfg: dict) -> list[Gig]:
+    """Filtruj zablokowane domeny i stare ogłoszenia."""
+    filters_cfg = cfg.get("filters", {})
+    blocked = [d.lower() for d in filters_cfg.get("blocked_domains", [])]
+    max_age = filters_cfg.get("max_age_days")
+
+    result, blocked_count, stale_count = [], 0, 0
+
+    for gig in gigs:
+        dom = _domain(gig.url)
+        if any(b in dom for b in blocked):
+            blocked_count += 1
+            continue
+
+        if max_age is not None and gig.posted_dt is not None:
+            age = gig.age_days()
+            if age is not None and age > max_age:
+                stale_count += 1
+                continue
+
+        result.append(gig)
+
+    if blocked_count:
+        print(f"→ Odfiltrowano (zablokowane domeny): {blocked_count}")
+    if stale_count:
+        print(f"→ Odfiltrowano (zbyt stare, >{max_age}d): {stale_count}")
+
+    return result
+
+
 def fetch_all(cfg: dict, only_source: str | None = None) -> tuple[list[Gig], list[str]]:
     all_gigs: list[Gig] = []
     sources_used: list[str] = []
@@ -75,13 +113,26 @@ def fetch_all(cfg: dict, only_source: str | None = None) -> tuple[list[Gig], lis
         except Exception as e:
             print(f"BŁĄD: {e}")
 
-    run("remoteok", remoteok, sources_cfg.get("remoteok", {}))
-    run("weworkremotely", weworkremotely, sources_cfg.get("weworkremotely", {}))
-    run("hn_hiring", hn_hiring, sources_cfg.get("hn_hiring", {}))
-    run("upwork_rss", upwork_rss, sources_cfg.get("upwork_rss", {}))
-    run("searxng", searxng, sources_cfg.get("searxng", {}))
+    run("remoteok",      remoteok,       sources_cfg.get("remoteok", {}))
+    run("weworkremotely",weworkremotely, sources_cfg.get("weworkremotely", {}))
+    run("hn_hiring",     hn_hiring,      sources_cfg.get("hn_hiring", {}))
+    run("upwork_rss",    upwork_rss,     sources_cfg.get("upwork_rss", {}))
+    run("searxng",       searxng,        sources_cfg.get("searxng", {}))
+    run("reddit_forhire",reddit_forhire, sources_cfg.get("reddit_forhire", {}))
+    run("remotive",      remotive,       sources_cfg.get("remotive", {}))
+    run("freelancer",    freelancer,     sources_cfg.get("freelancer", {}))
 
     return all_gigs, sources_used
+
+
+def _sort_key(item: RankedGig):
+    """Sortuj: najnowsze pierwsze, fit jako tiebreaker."""
+    dt = item.gig.posted_dt
+    if dt is None:
+        epoch = datetime(1970, 1, 1, tzinfo=timezone.utc)
+    else:
+        epoch = dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+    return (epoch, item.fit)
 
 
 def run(
@@ -128,23 +179,33 @@ def run(
             unique_gigs.append(g)
     print(f"→ Po deduplicacji: {len(unique_gigs)} unikalnych ogłoszeń")
 
-    # 3. Scoring
+    # 3. Filtr domen i świeżości
+    print("\n── FILTROWANIE ───────────────────────────────────────────────")
+    filtered = filter_gigs(unique_gigs, cfg)
+    print(f"→ Po filtrowaniu: {len(filtered)} ogłoszeń")
+
+    if not filtered:
+        print("Brak ogłoszeń po filtrowaniu.")
+        return
+
+    # 4. Scoring
     llm_mode = scoring_cfg.get("use_llm", True) and use_llm
     print(f"\n── SCORING (mode: {'LLM' if llm_mode else 'heurystyka'}) ────────────────────────")
 
     ranked: list[RankedGig] = []
-    for i, gig in enumerate(unique_gigs, 1):
-        print(f"  [{i:3}/{len(unique_gigs)}] {gig.title[:55]:<55} ", end="", flush=True)
+    for i, gig in enumerate(filtered, 1):
+        print(f"  [{i:3}/{len(filtered)}] {gig.title[:55]:<55} ", end="", flush=True)
         s = score(gig, scoring_cfg)
         bar = "█" * s.fit + "░" * (10 - s.fit)
         print(f"fit={s.fit}/10 {bar}")
         if s.fit >= fit_threshold:
             ranked.append(RankedGig(gig=gig, score=s))
 
-    ranked.sort(key=lambda r: r.fit, reverse=True)
-    print(f"\n→ Zakwalifikowano: {len(ranked)} ogłoszeń (fit ≥ {fit_threshold})")
+    # Sortuj: najnowsze pierwsze, fit jako tiebreaker
+    ranked.sort(key=_sort_key, reverse=True)
+    print(f"\n→ Zakwalifikowano: {len(ranked)} ogłoszeń (fit ≥ {fit_threshold}), najnowsze pierwsze")
 
-    # 4. Raport
+    # 5. Raport
     print("\n── GENEROWANIE RAPORTU ──────────────────────────────────────")
     output_dir = _DIR / report_cfg.get("output_dir", "reports")
     paths = generate(
@@ -157,21 +218,24 @@ def run(
     for fmt, path in paths.items():
         print(f"  [{fmt.upper()}] → {path}")
 
-    # 5. Webhook
+    # 6. Webhook
     if not no_webhook:
         print("\n── DOSTARCZENIE (webhook) ───────────────────────────────────")
         date_str = datetime.now().strftime("%Y-%m-%d")
         deliver(ranked, paths, date_str)
 
-    # 6. Podsumowanie TOP 5
+    # 7. Podsumowanie TOP 10
     print("\n" + "=" * 65)
-    print(f"TOP 5 ogłoszeń (z {len(ranked)} zakwalifikowanych)")
+    print(f"TOP {min(10, len(ranked))} NAJNOWSZYCH ogłoszeń (fit ≥ {fit_threshold})")
     print("=" * 65)
-    for i, item in enumerate(ranked[:5], 1):
+    for i, item in enumerate(ranked[:10], 1):
         fit_bar = "█" * item.fit + "░" * (10 - item.fit)
+        age = item.gig.age_str()
+        date_label = f"{item.gig.posted_at}  ({age})" if item.gig.posted_at else f"({age})"
         print(f"\n#{i}  fit={item.fit}/10 {fit_bar}")
         print(f"    TYTUŁ:  {item.gig.title}")
         print(f"    LINK:   {item.gig.url}")
+        print(f"    DATA:   {date_label}")
         print(f"    BUDŻET: {item.gig.budget}  |  ŹRÓDŁO: {item.gig.source}")
         print(f"    DLACZEGO: {item.score.why_fits}")
         print(f"    KĄT OFERTY: {item.score.offer_angle}")
@@ -188,7 +252,7 @@ if __name__ == "__main__":
     parser.add_argument("--threshold", type=int, default=None, help="Min fit score (default: 6)")
     parser.add_argument("--no-webhook", action="store_true", help="Pomiń webhook")
     parser.add_argument("--source", type=str, default=None,
-                        help="Tylko jedno źródło: remoteok|weworkremotely|hn_hiring|searxng")
+                        help="Tylko jedno źródło: remoteok|weworkremotely|hn_hiring|searxng|reddit_forhire|remotive|freelancer")
     args = parser.parse_args()
 
     run(

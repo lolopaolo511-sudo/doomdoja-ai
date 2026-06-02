@@ -3,10 +3,22 @@ from __future__ import annotations
 
 import hashlib
 import time
+from datetime import datetime, timezone
 
 import httpx
 
 from . import Gig
+
+
+def _parse_date(s: str) -> datetime | None:
+    if not s:
+        return None
+    for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M:%SZ", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(s[:19], fmt).replace(tzinfo=timezone.utc)
+        except ValueError:
+            continue
+    return None
 
 _BASE = "https://remoteok.com/api"
 _HEADERS = {
@@ -39,6 +51,7 @@ def fetch(cfg: dict) -> list[Gig]:
                 continue
             seen.add(job_id)
 
+            date_str = job.get("date", "")
             budget = _extract_budget(job)
             gigs.append(Gig(
                 id=f"rok_{job_id}",
@@ -47,7 +60,8 @@ def fetch(cfg: dict) -> list[Gig]:
                 description=_clean(job.get("description", "")),
                 budget=budget,
                 source="RemoteOK",
-                posted_at=job.get("date", ""),
+                posted_at=date_str[:10] if date_str else "",
+                posted_dt=_parse_date(date_str),
                 tags=job.get("tags", []),
             ))
 
