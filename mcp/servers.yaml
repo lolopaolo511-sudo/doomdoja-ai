@@ -1,0 +1,56 @@
+# MCP Servers configuration
+# Każdy serwer może mieć transport: stdio | http
+# Narzędzia z włączonych serwerów wpinają się automatycznie do rejestru agenta
+# jako "<server_name>__<tool_name>".
+
+servers:
+  # ── NASZ WŁASNY SERWER (demo stdio) ──────────────────────────────────────
+  # Wystawia narzędzia qwen-agent: web_search, vision_ocr, agent_task, gig_finder
+  # Uruchom: python3 ~/qwen-agent/mcp/server.py --mode stdio
+  local_qwen:
+    transport: stdio
+    command: python3
+    args:
+      - /Users/doomdoja/qwen-agent/mcp/server.py
+      - --mode
+      - stdio
+    enabled: true
+    description: "Lokalny serwer qwen-agent — web_search, vision_ocr, agent_task, gig_finder"
+
+  # ── HTTP — nasz własny serwer w trybie HTTP ───────────────────────────────
+  # Uruchom najpierw: python3 ~/qwen-agent/mcp/server.py --mode http --port 8765
+  local_qwen_http:
+    transport: http
+    url: http://localhost:8765
+    enabled: false
+    description: "Lokalny serwer qwen-agent przez HTTP (uruchom server.py --mode http)"
+
+  # ── FILESYSTEM MCP (wymaga: npm install -g @modelcontextprotocol/server-filesystem) ──
+  filesystem:
+    transport: stdio
+    command: npx
+    args:
+      - --yes
+      - "@modelcontextprotocol/server-filesystem"
+      - /Users/doomdoja
+    enabled: false
+    requires: node
+    description: "Dostęp do systemu plików przez MCP (wymaga Node.js)"
+
+  # ── FETCH MCP (wymaga: npm install -g @modelcontextprotocol/server-fetch) ──
+  fetch:
+    transport: stdio
+    command: npx
+    args:
+      - --yes
+      - "@modelcontextprotocol/server-fetch"
+    enabled: false
+    requires: node
+    description: "Pobieranie URL przez MCP (wymaga Node.js)"
+
+  # ── PLACEHOLDER: własny zdalny serwer ────────────────────────────────────
+  remote_custom:
+    transport: http
+    url: http://your-server:8765
+    enabled: false
+    description: "Szablon dla własnego zdalnego serwera MCP"
