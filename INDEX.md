@@ -99,6 +99,80 @@
 
 ## Produkcyjne rozszerzenia (2026-06-01)
 
+### 🔌 MCP Layer — klient i serwer MCP (v2 BLOK 1)
+- **Ścieżka:** `~/qwen-agent/mcp/`
+- **Uruchomienie serwera:**
+  ```bash
+  python3 ~/qwen-agent/mcp/server.py --mode stdio    # stdio (Claude Desktop)
+  python3 ~/qwen-agent/mcp/server.py --mode http     # HTTP :8765
+  ```
+- **Klient:** `python3 ~/qwen-agent/mcp/client.py --server local_qwen --list`
+- **Narzędzia:** `web_search`, `vision_ocr`, `agent_task`, `gig_finder`, `rag_query`, `scraper_fetch`
+- **Konfiguracja:** `~/qwen-agent/mcp/servers.yaml`
+- **Smoke test:** `python3 ~/qwen-agent/mcp/smoke_test.py` → 13/13 PASS
+
+### ✅ Verifier + Planner v2 (v2 BLOK 3)
+- **Ścieżka:** `~/qwen-agent/multiagent/verifier.py` + `planner.py` (v2)
+- **Uruchomienie verifier CLI:**
+  ```bash
+  python3 ~/qwen-agent/multiagent/verifier.py ~/projekt/index.html
+  ```
+- **Orchestrator z --verify (domyślnie ON):**
+  ```bash
+  python3 ~/qwen-agent/multiagent/orchestrator.py "zadanie" --verify --max-verify-rounds 3
+  python3 ~/qwen-agent/multiagent/orchestrator.py "zadanie" --resume --work-dir ~/projekt
+  ```
+- **Typy weryfikacji:** Python (ast+pytest), HTML/gra (canvas,loop), JS (node), JSON
+- **Dowód IcyTower3:** `python3 ~/qwen-agent/evals/icytower3_proof.py`
+  - BROKEN: verifier wykrywa 4 braki uczciwie (nie udaje sukcesu)
+  - FULL: gra Icy Tower 4.4KB przechodzi ✓ — plik: `~/IcyTower3/index.html`
+
+---
+
+## Tabela statusów v2 (2026-06-02)
+
+| Blok | Moduł | Status | Smoke test |
+|------|-------|--------|------------|
+| BLOK 1 | MCP klient (`mcp/client.py`) | ✅ | 13/13 PASS |
+| BLOK 1 | MCP serwer (`mcp/server.py`) | ✅ | raw JSON-RPC OK |
+| BLOK 3 | Planner v2 (`multiagent/planner.py`) | ✅ | acceptance_criteria + state |
+| BLOK 3 | Verifier (`multiagent/verifier.py`) | ✅ | Python/HTML/JS/JSON |
+| BLOK 3 | Orchestrator --verify | ✅ | pętla poprawek 3 rundy |
+| BLOK 3 | Dowód IcyTower3 | ✅ | BROKEN=FAIL, FULL=PASS |
+
+---
+
+## Ocena: o ile realnie urosła zdolność agenta
+
+### Co faktycznie się poprawiło:
+1. **MCP klient** — agent może teraz wywoływać narzędzia z zewnętrznych serwerów MCP
+   (filesystem, fetch, inne agenci) bez dodatkowego kodu. Każdy nowy serwer to zmiana 
+   jednego wiersza w servers.yaml.
+2. **MCP serwer** — nasze narzędzia są teraz dostępne dla Claude Desktop i innych
+   aplikacji MCP-compatible. Gig-finder, web_search, vision_ocr dostępne z zewnątrz.
+3. **Verifier** — agent przestaje "udawać sukces". Przed v2: orchestrator zwracał APPROVED
+   nawet dla pustego pliku HTML. Po v2: weryfikuje canvas, pętlę gry, brak błędów składni,
+   i żąda poprawek aż warunki zostaną spełnione.
+4. **Planner v2 + state** — długie zadania można wznawiać po przerwaniu (--resume).
+   Acceptance criteria dają coderowi precyzyjny cel zamiast vague "zrób grę".
+
+### Co nadal jest słabością:
+- Lokalny 16B model często nie domknie pełnej gry w jednym przejściu.
+  Verifier wykrywa to (uczciwy raport), ale pętla poprawek wymaga modelu
+  który rozumie swoje poprzednie błędy — deepseek-coder nie zawsze to robi.
+- MCP serwer działa, ale bez SSE/streaming — długie narzędzia (agent_task)
+  mogą przekroczyć timeout klienta przy powolnym modelu.
+- Verifier JS bez node jest heurystyczny — złapie nierównoważne nawiasy,
+  ale nie złapie błędów semantycznych (niezdefiniowane zmienne itp.).
+
+### Co dalej — następny krok:
+**Router hybrydowy** — automatyczne przełączanie między lokalnym modelem a API cloud
+(Claude/GPT) zależnie od złożoności zadania. Planner v2 ocenia task.complexity
+i wybiera model: proste → local, złożone → cloud. To zamknie lukę "16B nie domknie
+pełnej gry" bez rezygnacji z prywatności przy prostych zadaniach.
+
+---
+
 ### 🔒 Caddy — Reverse Proxy HTTPS + Auth (ETAP 1)
 - **Ścieżka:** `~/doomdoja-stack/caddy/Caddyfile`
 - **TLS:** internal CA (self-signed) lub Tailscale cert

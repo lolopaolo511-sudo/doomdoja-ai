@@ -429,6 +429,127 @@ cp ~/scraper-product/config.yaml ~/scraper-product/clients/nowy_klient.yaml
 
 ---
 
+## MCP — klient i serwer (v2)
+
+**Co robi:** Warstwa MCP (Model Context Protocol) pozwala agentowi łączyć się z zewnętrznymi
+serwerami MCP (klient) i wystawiać własne narzędzia innym aplikacjom (serwer).
+
+### Serwer MCP — uruchomienie
+
+```bash
+# Tryb stdio (do podłączenia jako MCP server w innych app)
+python3 ~/qwen-agent/mcp/server.py --mode stdio
+
+# Tryb HTTP (REST endpoint)
+python3 ~/qwen-agent/mcp/server.py --mode http --port 8765
+
+# Lista dostępnych narzędzi
+python3 ~/qwen-agent/mcp/server.py --list
+```
+
+**Narzędzia serwera:** `web_search`, `vision_ocr`, `agent_task`, `gig_finder`, `rag_query`, `scraper_fetch`
+
+### Klient MCP — użycie
+
+```bash
+# Listuj narzędzia serwera
+python3 ~/qwen-agent/mcp/client.py --server local_qwen --list
+
+# Wywołaj narzędzie
+python3 ~/qwen-agent/mcp/client.py --server local_qwen \
+  --call web_search --args '{"query": "python async"}'
+```
+
+**Użycie w kodzie (narzędzia MCP w pętli ReAct):**
+```python
+from mcp.client import load_mcp_tools
+import sys; sys.path.insert(0, '/Users/doomdoja/qwen-agent')
+
+mcp_tools = load_mcp_tools()        # załaduj z servers.yaml
+all_tools = native_tools + mcp_tools  # wpnij do agenta
+```
+
+### Podłączenie do Claude Desktop
+
+W `~/Library/Application Support/Claude/claude_desktop_config.json`:
+```json
+{
+  "mcpServers": {
+    "qwen-agent": {
+      "command": "python3",
+      "args": ["/Users/doomdoja/qwen-agent/mcp/server.py", "--mode", "stdio"]
+    }
+  }
+}
+```
+
+### Konfiguracja serwerów
+
+Edytuj `~/qwen-agent/mcp/servers.yaml` — włącz/wyłącz serwery (`enabled: true/false`).
+
+### Smoke test
+
+```bash
+python3 ~/qwen-agent/mcp/smoke_test.py
+```
+
+---
+
+## Verifier — twarda weryfikacja artefaktów (v2)
+
+**Co robi:** Po każdej implementacji sprawdza artefakty pod kątem kompletności i poprawności.
+Nie udaje sukcesu — uczciwie raportuje braki i przekazuje wskazówki naprawcze do codera.
+
+```bash
+# Weryfikuj pojedynczy plik
+python3 ~/qwen-agent/multiagent/verifier.py ~/IcyTower3/index.html
+
+# Weryfikuj katalog projektu
+python3 ~/qwen-agent/multiagent/verifier.py ~/moj-projekt/
+```
+
+**Typy weryfikacji:**
+| Typ | Co sprawdza |
+|-----|-------------|
+| Python | `ast.parse` + `py_compile` + `pytest` |
+| HTML/game | DOCTYPE, html/head/body, `<canvas>`, `getContext()`, `requestAnimationFrame` |
+| JS | `node --check` (lub heurystyki bez node) |
+| JSON | `json.loads` |
+
+### Orchestrator z --verify (domyślnie ON)
+
+```bash
+cd ~/qwen-agent
+python3 multiagent/orchestrator.py "zadanie" --work-dir ~/projekt --verify
+# lub wyraźnie:
+python3 multiagent/orchestrator.py "zadanie" --no-verify     # v1 behavior
+python3 multiagent/orchestrator.py "zadanie" --max-verify-rounds 3   # więcej rund poprawek
+
+# Wznów przerwaną sesję
+python3 multiagent/orchestrator.py "zadanie" --resume --work-dir ~/projekt
+```
+
+**Nowe flagi orchestratora:**
+| Flaga | Domyślnie | Opis |
+|-------|-----------|------|
+| `--verify` | ON | Twarda weryfikacja po implementacji |
+| `--no-verify` | — | Wyłącz verifier (v1 behavior) |
+| `--max-verify-rounds N` | 3 | Max rund poprawek verifier |
+| `--resume` | — | Wznów z plan_state.json |
+
+### Dowód działania (IcyTower3)
+
+```bash
+# Scenariusz BROKEN → verifier wykrywa 4 braki (canvas, pętla gry, itp.)
+# Scenariusz FULL   → gra przechodzi weryfikację ✓
+python3 ~/qwen-agent/evals/icytower3_proof.py
+
+# Z prawdziwym LLM (wymaga Ollamy)
+python3 ~/qwen-agent/evals/icytower3_proof.py --with-llm
+```
+
+---
+
 ## Jak rozmawiać z lokalnym agentem
 
 ### W terminalu (orchestrator)
