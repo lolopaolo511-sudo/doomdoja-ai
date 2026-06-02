@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+    "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Instalacja:
+     cp com.doomdoja.gig-finder.plist ~/Library/LaunchAgents/
+     launchctl load ~/Library/LaunchAgents/com.doomdoja.gig-finder.plist
+
+     Weryfikacja:
+     launchctl list | grep gig-finder
+
+     Ręczne uruchomienie:
+     launchctl start com.doomdoja.gig-finder
+
+     Odinstalowanie:
+     launchctl unload ~/Library/LaunchAgents/com.doomdoja.gig-finder.plist
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.doomdoja.gig-finder</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/python3</string>
+        <string>/Users/doomdoja/qwen-agent/gig-finder/run_gig_finder.py</string>
+        <string>--no-llm</string>
+    </array>
+
+    <!-- Codziennie o 8:30 rano -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>8</integer>
+        <key>Minute</key>
+        <integer>30</integer>
+    </dict>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/doomdoja/qwen-agent/gig-finder</string>
+
+    <key>StandardOutPath</key>
+    <string>/Users/doomdoja/qwen-agent/gig-finder/logs/gig-finder.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/doomdoja/qwen-agent/gig-finder/logs/gig-finder.err</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin</string>
+        <key>HOME</key>
+        <string>/Users/doomdoja</string>
+        <key>PYTHONPATH</key>
+        <string>/Users/doomdoja/qwen-agent/gig-finder</string>
+    </dict>
+
+    <!-- Uruchom ponownie jeśli pominięto (np. Mac był uśpiony) -->
+    <key>RunAtLoad</key>
+    <false/>
+
+    <!-- Nie restartuj po awarii automatycznie — uruchamiamy raz dziennie -->
+    <key>KeepAlive</key>
+    <false/>
+</dict>
+</plist>

@@ -1,0 +1,124 @@
+profile:
+  name: "Piero Nocentini"
+  title: "AI Automation & Web Scraping Expert"
+  hourly_rate_min: 35
+  hourly_rate_max: 120
+  preferred_budget_min: 300
+  skills:
+    - web scraping
+    - data extraction
+    - python automation
+    - ETL pipeline
+    - AI agent
+    - LLM
+    - playwright
+    - selenium
+    - airtable
+    - make.com
+    - zapier
+    - n8n
+    - pandas
+    - lead generation
+    - OCR
+    - invoice parsing
+    - document processing
+    - FastAPI
+    - crawler
+
+  # Słowa mocnego dopasowania (każde daje +2 do fit)
+  strong_match_keywords:
+    - scraping
+    - crawler
+    - data extraction
+    - automation
+    - web scraper
+    - airtable
+    - make.com
+    - zapier
+    - n8n
+    - lead gen
+    - lead generation
+    - invoice
+    - OCR
+    - pdf extraction
+    - data pipeline
+    - ETL
+    - playwright
+
+  # Słowa wykluczające
+  avoid_keywords:
+    - wordpress only
+    - react native
+    - mobile app
+    - iOS
+    - Android
+    - Shopify theme
+    - blockchain
+    - smart contract
+    - crypto
+
+sources:
+  remoteok:
+    enabled: true
+    tags:
+      - python
+      - automation
+      - data
+    max_jobs: 50
+
+  weworkremotely:
+    enabled: true
+    categories:
+      - programming
+    max_jobs: 30
+
+  hn_hiring:
+    enabled: true
+    keywords:
+      - scraping
+      - automation
+      - python
+      - data pipeline
+    max_comments: 100
+
+  upwork_rss:
+    enabled: false           # wymaga UPWORK_RSS_URL w .env
+    # Jak podpiąć:
+    # 1. Zaloguj się na Upwork
+    # 2. Wyszukaj ogłoszenia (np. "python scraping automation")
+    # 3. Zapisz wyniki jako Saved Search
+    # 4. Otwórz DevTools → Network, odśwież stronę z ogłoszeniami
+    # 5. Znajdź request do /ab/feed/jobs/rss i skopiuj URL
+    # 6. Wpisz URL do .env jako UPWORK_RSS_URL=https://www.upwork.com/ab/feed/jobs/rss?...
+    # 7. Ustaw enabled: true tutaj
+    max_jobs: 30
+
+  searxng:
+    enabled: true
+    url: "http://localhost:8888"
+    queries:
+      - "python web scraping freelance job"
+      - "data extraction automation contract"
+      - "airtable automation developer"
+      - "make.com zapier automation freelancer"
+      - "lead generation scraping python"
+    max_per_query: 5
+
+scoring:
+  use_llm: true
+  model: "deepseek-coder-v2:16b"       # model Ollama do oceny
+  ollama_url: "http://localhost:11434"
+  fit_threshold: 6                      # min fit score (0-10) do raportu
+  llm_timeout: 45                       # sekundy
+
+report:
+  top_n: 15                             # max pozycji w raporcie
+  output_dir: "reports"
+  formats:
+    - markdown
+    - html
+
+delivery:
+  # Webhook Make.com — ustaw MAKE_WEBHOOK_URL w .env
+  webhook_enabled: false
+  dry_run_if_no_url: true              # wyświetla payload zamiast wysyłać
