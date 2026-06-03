@@ -12,7 +12,9 @@ Wzorce:
 
 from .classify_and_act import classify_and_act, ClassifyResult
 from .fan_out_and_synthesize import fan_out_and_synthesize, FanOutResult
-from .adversarial_verification import adversarial_verification, AdversarialResult, Verdict
+from .adversarial_verification import (
+    adversarial_verification, adversarial_verification_batch, AdversarialResult, Verdict,
+)
 from .generate_and_filter import generate_and_filter, FilteredResult
 from .tournament import tournament, TournamentResult
 from .loop_until_done import loop_until_done, LoopResult
@@ -20,7 +22,7 @@ from .loop_until_done import loop_until_done, LoopResult
 __all__ = [
     "classify_and_act", "ClassifyResult",
     "fan_out_and_synthesize", "FanOutResult",
-    "adversarial_verification", "AdversarialResult", "Verdict",
+    "adversarial_verification", "adversarial_verification_batch", "AdversarialResult", "Verdict",
     "generate_and_filter", "FilteredResult",
     "tournament", "TournamentResult",
     "loop_until_done", "LoopResult",
