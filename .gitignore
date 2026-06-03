@@ -19,3 +19,17 @@ demo-repo/
 .env
 *.env
 credentials.json
+
+# Runtime / generated outputs (nie commituj)
+agent_memory.db
+evals/reports/
+gig-finder/reports/
+prospecting/airtable_dryrun_log.jsonl
+prospecting/results_latest.json
+
+# Runtime task queue
+tasks/
+gig-finder/logs/
+
+# Nested duplicate directory
+qwen-agent/

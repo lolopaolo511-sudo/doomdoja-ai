@@ -280,6 +280,38 @@
 
 ---
 
+### 📄 cv-creator — Generator CV z lokalnym LLM + Hybrid Router (2026-06-03)
+- **Ścieżka:** `~/cv-creator/`
+- **Git:** lokalny (bez remote, commit `b8ba630`)
+- **Uruchomienie:**
+  ```bash
+  # CLI — demo
+  cd ~/cv-creator && python3 cli/main.py --demo
+
+  # CLI — własne dane
+  python3 cli/main.py --cv dane.yaml --job ogłoszenie.txt --cover-letter --lang pl
+
+  # Web UI (FastAPI)
+  cd ~/cv-creator && python3 -m uvicorn api.app:app --reload
+  # → http://localhost:8000
+
+  # Testy
+  python3 -m pytest tests/ -v   # → 26/26 PASS
+  ```
+- **Wejście:** YAML/JSON z danymi kandydata + opcjonalny opis ogłoszenia
+- **Wyjście:** PDF + DOCX w 3 szablonach (modern / classic / ats-plain)
+- **Szablony:** modern (kolor, czytelny), classic (tradycyjny), ats-plain (ATS-safe, no tables)
+- **Routing per sekcja:**
+  - Summary, bullets, skills → 🏠 LOCAL (deepseek-coder-v2:16b / qwen:7b)
+  - Cover letter (score 6-7) → ☁️ CLOUD Claude Opus gdy `ANTHROPIC_API_KEY` ustawiony
+- **Jakość local-only:** 6/10 — CV gotowe do edycji; cover letter szablonowy
+- **Jakość z cloud:** 8.5/10 — cover letter przekonujący, tailoring wyraźnie lepszy
+- **Dwujęzyczność:** `--lang pl|en` — całe CV i prompty w wybranym języku
+- **Zależności:** fastapi, uvicorn, reportlab, python-docx, anthropic, pyyaml, httpx (już zainstalowane)
+- **Integracja z routerem:** `~/qwen-agent/router/router.py` — `HybridRouter` importowany bezpośrednio
+
+---
+
 ## Ocena: o ile realnie urosła zdolność agenta
 
 ### Szczera ocena v3 (2026-06-03) — BLOK 1–4:

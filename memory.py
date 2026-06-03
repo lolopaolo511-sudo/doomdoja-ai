@@ -18,25 +18,24 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-import httpx
+try:
+    from qwen_agent.core import get_config, get_llm_client
+except ModuleNotFoundError:
+    # Allow running as script from inside qwen-agent/ without installation
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).parent))
+    from core import get_config, get_llm_client
 
-OLLAMA_URL = "http://localhost:11434"
-EMBED_MODEL = "nomic-embed-text"
-DEFAULT_DB = Path.home() / "qwen-agent" / "agent_memory.db"
+cfg = get_config()
+DEFAULT_DB = cfg.memory_db_path
 SIMILARITY_THRESHOLD = 0.75  # cosine distance (niższe = bardziej podobne)
 
 
 def _embed(text: str) -> list[float]:
-    r = httpx.post(
-        f"{OLLAMA_URL}/api/embed",
-        json={"model": EMBED_MODEL, "input": text},
-        timeout=30,
-    )
-    r.raise_for_status()
-    data = r.json()
-    if "embeddings" in data:
-        return data["embeddings"][0]
-    return data["embedding"]
+    """Now uses the hardened central LLM client."""
+    llm = get_llm_client()
+    return llm.embed(text, model=cfg.embed_model)
 
 
 def _cosine_dist(a: list[float], b: list[float]) -> float:
@@ -50,7 +49,10 @@ def _cosine_dist(a: list[float], b: list[float]) -> float:
 
 class AgentMemory:
     def __init__(self, db_path: str = ""):
-        self.db_path = Path(db_path) if db_path else DEFAULT_DB
+        if db_path:
+            self.db_path = Path(db_path)
+        else:
+            self.db_path = DEFAULT_DB
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._conn = sqlite3.connect(str(self.db_path))
         self._init_db()
