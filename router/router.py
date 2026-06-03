@@ -106,6 +106,20 @@ class HybridRouter:
         self._cfg = config or _load_config()
         self._cloud_available: Optional[bool] = None  # lazy check
         self._decisions: list[tuple[RouterContext, RouterDecision]] = []
+        # Feedback loop — lazy init (nie crashuje jeśli memory2 niedostępna)
+        self._feedback: Optional[object] = None
+        self._calibration: Optional[object] = None
+        try:
+            from router.feedback import RouterFeedback
+            from router.calibration import calibrate
+            self._feedback = RouterFeedback()
+            cal_stats = self._feedback.get_stats()
+            if cal_stats:
+                self._calibration = calibrate(cal_stats)
+                logger.info(f"[router] Kalibracja załadowana: "
+                            f"{len(getattr(self._calibration,'adjustments',[]))} zmian")
+        except Exception as e:
+            logger.debug(f"[router] feedback/calibration niedostępne: {e}")
 
         # Progi z configa (z fallback na sensowne domyślne)
         th = self._cfg.get("thresholds", {})
@@ -229,9 +243,17 @@ class HybridRouter:
         self._log_and_record(ctx, decision)
         return decision
 
-    def record_verifier_result(self, session_id: str, step_id: int, passed: bool) -> None:
+    def record_verifier_result(self, session_id: str, step_id: int, passed: bool,
+                               rounds: int = 1, duration_s: float = 0.0) -> None:
         """Rejestruje wynik verifier — używane przez orchestrator do eskalacji."""
         logger.debug(f"[router] session={session_id} step={step_id} verifier={'PASS' if passed else 'FAIL'}")
+        if self._feedback:
+            try:
+                outcome = "success" if passed else "fail"
+                self._feedback.record_outcome(session_id, outcome,
+                                              rounds=rounds, duration_s=duration_s)
+            except Exception as e:
+                logger.debug(f"[router] feedback.record_outcome error: {e}")
 
     def get_report(self) -> str:
         """Generuje raport końcowy: które kroki poszły gdzie."""
@@ -323,6 +345,19 @@ class HybridRouter:
     def _log_and_record(self, ctx: RouterContext, decision: RouterDecision) -> None:
         logger.info(f"[router] {decision.summary()}")
         self._decisions.append((ctx, decision))
+        if self._feedback and ctx.session_id:
+            try:
+                self._feedback.log_decision(
+                    session_id=ctx.session_id,
+                    task_preview=ctx.step_title or f"step_{ctx.step_id}",
+                    backend=decision.backend,
+                    model=decision.model,
+                    score=decision.complexity_score,
+                    privacy=decision.privacy_protected,
+                    escalated=decision.escalated,
+                )
+            except Exception as e:
+                logger.debug(f"[router] feedback.log_decision error: {e}")
 
 
 # ── SINGLETON per-process ──────────────────────────────────────────────────────
