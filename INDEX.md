@@ -428,22 +428,30 @@ Dlaczego:
 
 ---
 
-## Status GitHub (2026-06-01)
+## Status GitHub (2026-06-03)
 
-| Projekt | GitHub | Synced |
-|---------|--------|--------|
-| qwen-agent | ✅ [doomdoja-ai](https://github.com/lolopaolo511-sudo/doomdoja-ai) | ✅ |
-| qwen-scraper | ✅ [qwen-scraper](https://github.com/lolopaolo511-sudo/qwen-scraper) | ✅ |
-| qwen-rag | ✅ [qwen-rag](https://github.com/lolopaolo511-sudo/qwen-rag) | ✅ |
-| qwen-vision | ✅ [qwen-vision](https://github.com/lolopaolo511-sudo/qwen-vision) | ✅ |
-| qwen-lab | ✅ [qwen-lab](https://github.com/lolopaolo511-sudo/qwen-lab) | ✅ |
-| scraper-product | ✅ [scraper-product](https://github.com/lolopaolo511-sudo/scraper-product) | ✅ |
-| openwebui-setup | — (2.3 GB venv, bez sensu) | — |
-| MarioClone | ✅ [MarioClone](https://github.com/lolopaolo511-sudo/MarioClone) | ✅ |
-| GodotMario | ✅ [GodotMario](https://github.com/lolopaolo511-sudo/GodotMario) | ✅ |
-| IcyTower | ✅ [IcyTower](https://github.com/lolopaolo511-sudo/IcyTower) | ✅ |
+| Projekt | Widoczność | URL repo | Push |
+|---------|-----------|----------|------|
+| qwen-agent | 🔒 prywatne | https://github.com/lolopaolo511-sudo/doomdoja-ai | ⏳ wymaga gh auth |
+| qwen-scraper | 🔒 prywatne | https://github.com/lolopaolo511-sudo/qwen-scraper | ⏳ wymaga gh auth |
+| qwen-rag | 🔒 prywatne | https://github.com/lolopaolo511-sudo/qwen-rag | ⏳ wymaga gh auth |
+| qwen-vision | 🔒 prywatne | https://github.com/lolopaolo511-sudo/qwen-vision | ⏳ wymaga gh auth |
+| qwen-lab | 🔒 prywatne | https://github.com/lolopaolo511-sudo/qwen-lab | ⏳ wymaga gh auth |
+| scraper-product | 🔒 prywatne | https://github.com/lolopaolo511-sudo/scraper-product | ⏳ wymaga gh auth |
+| daily-market-pl | 🔒 prywatne | https://github.com/lolopaolo511-sudo/daily-market-pl | ⏳ nowe repo + push |
+| pricing-calculator | 🔒 prywatne | https://github.com/lolopaolo511-sudo/pricing-calculator | ⏳ nowe repo + push |
+| gmail-automation | 🔒 prywatne | https://github.com/lolopaolo511-sudo/gmail-automation | ⏳ nowe repo + push |
+| cv-creator | 🔒 prywatne | https://github.com/lolopaolo511-sudo/cv-creator | ⏳ nowe repo + push |
+| print-lab | 🔒 prywatne | https://github.com/lolopaolo511-sudo/print-lab | ⏳ nowe repo + push |
+| doomdoja-stack | 🔒 prywatne | https://github.com/lolopaolo511-sudo/doomdoja-stack | ⏳ nowe repo + push |
+| MarioClone | 🌍 publiczne | https://github.com/lolopaolo511-sudo/MarioClone | ⏳ wymaga gh auth |
+| GodotMario | 🌍 publiczne | https://github.com/lolopaolo511-sudo/GodotMario | ⏳ wymaga gh auth |
+| IcyTower | 🌍 publiczne | https://github.com/lolopaolo511-sudo/IcyTower | ⏳ wymaga gh auth |
+| IcyTower2 | 🌍 publiczne | https://github.com/lolopaolo511-sudo/IcyTower2 | ⏳ nowe repo + push |
+| IcyTower3 | 🌍 publiczne | https://github.com/lolopaolo511-sudo/IcyTower3 | ⏳ nowe repo + push |
+| openwebui-setup | — | — (2.3 GB venv, nie trackować) | — |
 
-**WSZYSTKO JEST NA GITHUBIE** (poza openwebui-setup, który jest za duży).
+**Lokalnie wszystko gotowe. Wymagany `gh auth login` + 1 komenda push-all (patrz sekcja Push).**
 
 ---
 
