@@ -1,0 +1,38 @@
+# computer_use/config.yaml — konfiguracja narzędzi browser+desktop
+
+allowed_domains:
+  - httpbin.org
+  - quotes.toscrape.com
+  - books.toscrape.com
+  - the-internet.herokuapp.com
+  - example.com
+  - localhost
+  - "127.0.0.1"
+
+# Wzorce URL uznawane za niebezpieczne (wymagają confirm=True)
+dangerous_url_patterns:
+  - checkout
+  - payment
+  - /pay
+  - /buy
+  - purchase
+  - submit-order
+  - delete-account
+  - /transfer
+  - /admin
+  - /delete
+  - /remove
+
+# Akcje zawsze blokowane bez explicit confirm=True
+actions_blocked_without_confirm:
+  - submit          # kliknięcie przycisku submit
+  - send            # wysłanie czegokolwiek
+  - confirm_action  # wszelkie dialogi potwierdzenia
+
+# Katalog logów akcji
+action_log_dir: "~/.qwen_agent/computer_use_logs"
+screenshot_dir: "~/.qwen_agent/screenshots"
+
+# LLM do extract() — model lokalny
+extract_model: "deepseek-coder-v2:16b"
+extract_timeout_s: 60
