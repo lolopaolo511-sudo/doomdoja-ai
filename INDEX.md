@@ -1,5 +1,5 @@
 # doomdoja-ai — Indeks systemu AI
-> Ostatnia aktualizacja: 2026-06-02
+> Ostatnia aktualizacja: 2026-06-03
 
 ---
 
@@ -151,6 +151,94 @@
 
 ---
 
+## Rozbudowa zdolności agenta (2026-06-03)
+
+### 🖥️ BLOK 1 — Computer/Browser Use (`computer_use/`)
+- **Ścieżka:** `~/qwen-agent/computer_use/`
+- **Narzędzia ReAct:** `navigate(url)`, `read_page(selector?)`, `click(selector, confirm?)`,
+  `type_text(selector, text)`, `extract(schema)`, `screenshot(name?)`
+- **Bezpieczniki:** whitelist domen (`config.yaml`), submit/buy/delete wymagają `confirm=True`,
+  każda akcja logowana do `~/.qwen_agent/computer_use_logs/`
+- **Desktop read-only:** `desktop_screenshot()` przez `screencapture` — tylko podgląd
+- **Rejestracja:** `register_computer_use_tools(my_registry)` — 7 narzędzi
+- **Demo:**
+  ```bash
+  python3 ~/qwen-agent/computer_use/demo.py
+  # quotes.toscrape: nawigacja+odczyt ✓ | httpbin form: fill bez submit ✓
+  ```
+
+### 🧠 BLOK 2 — Pamięć 2.0 (`memory2/`)
+- **Ścieżka:** `~/qwen-agent/memory2/`
+- **3 typy pamięci:**
+  - `semantic` — fakty i wiedza; wektory na Qdrant (`agent_semantic`) + SQLite fallback
+  - `episodic` — zdarzenia i przebiegi zadań z timestamp, outcome, task_id
+  - `procedural` — wyuczone procedury: kroki, success_rate, statystyki runów
+- **Unified API:** `Memory2.remember(type, content, tags, meta)` / `recall(query, type?)` / `forget(type, id)`
+- **Auto-kontekst:** `recall_context(task)` → gotowy blok do wklejenia w prompt agenta
+- **CLI:** `python3 memory2/cli.py remember semantic "fakt"` / `recall "pytanie"`
+- **Demo:**
+  ```bash
+  python3 ~/qwen-agent/memory2/demo.py
+  # Zapis 3 typy + recall + recall_context — PASS
+  ```
+
+### 🔄 BLOK 3 — Self-Improvement Closed-Loop (`self_improve/` + `evals/`)
+- **Nowe pliki:**
+  - `self_improve/closed_loop.py` — pętla: błąd → analiza LLM → patch → eval przed/po → kandydat
+  - `evals/swe_tasks.yaml` — 6 SWE-bench zadań (bug_fix×3, impl×2, refactor×1) z exec testami
+  - `evals/swe_runner.py` — runner: LLM generuje kod → subprocess exec → pass/fail; `--code-override`
+- **Przepływ:** error → `analyze_error()` → `PatchProposal` → eval przed → eval po → `EvalComparison` →
+  jeśli delta ≥ 0 → kandydat zapisany do `proposals/` jako `candidate_*.md` — **NIE auto-merge**
+- **Demo:**
+  ```bash
+  python3 -c "
+  from self_improve.closed_loop import ClosedLoop
+  loop = ClosedLoop()
+  loop.run_demo()   # wstrzyknięty off-by-one → wykryto → patch → eval +100pp
+  "
+  ```
+- **SWE runner:**
+  ```bash
+  python3 evals/swe_runner.py --task swe_fix_offbyone --code-override "def fizzbuzz(n): ..."
+  ```
+
+### 📊 BLOK 4 — Feedback Loop Routera (`router/`)
+- **Nowe pliki:**
+  - `router/feedback.py` — `RouterFeedback`: loguje decyzje do memory2 episodic; `record_outcome()`
+  - `router/calibration.py` — `calibrate(stats)` → kalibracja progów:
+    local_rate ≥ 80% → `force_local`; cloud uplift < 5% → `no_escalate`; local < 40% → obniż verifier_escalate
+  - `router/report.py` — raport ASCII tabela per (backend, task_class) + kalibracja
+- **Zintegrowano z `router.py`:** `_log_and_record()` → `fb.log_decision()`;
+  `record_verifier_result()` → `fb.record_outcome()`; kalibracja załadowana przy init
+- **Demo (mock 82 decyzji):**
+  ```bash
+  python3 ~/qwen-agent/router/report.py --mock
+  # Wynik: simple/private → force_local, complex → eskalacja (+54pp cloud uplift)
+  ```
+
+---
+
+## Tabela statusów v3 (2026-06-03)
+
+| Blok | Moduł | Status | Weryfikacja |
+|------|-------|--------|-------------|
+| v3 BLOK 1 | `computer_use/browser_agent.py` (navigate/read/click/type/extract/screenshot) | ✅ | Playwright demo PASS |
+| v3 BLOK 1 | `computer_use/desktop.py` (desktop_screenshot) | ✅ | screencapture (sandbox: degraded OK) |
+| v3 BLOK 1 | `computer_use/register.py` (7 narzędzi) | ✅ | register_computer_use_tools PASS |
+| v3 BLOK 2 | `memory2/semantic.py` (Qdrant + SQLite fallback) | ✅ | Qdrant REST + recall PASS |
+| v3 BLOK 2 | `memory2/episodic.py` (zdarzenia SQLite) | ✅ | recall "router cloud" PASS |
+| v3 BLOK 2 | `memory2/procedural.py` (procedury + success_rate) | ✅ | recall "scraping" PASS |
+| v3 BLOK 2 | `memory2/memory2.py` (unified API + recall_context) | ✅ | recall_context blok PASS |
+| v3 BLOK 3 | `evals/swe_tasks.yaml` (6 SWE zadań) | ✅ | buggy=FAIL, fixed=PASS |
+| v3 BLOK 3 | `evals/swe_runner.py` (exec testy) | ✅ | subprocess exec PASS |
+| v3 BLOK 3 | `self_improve/closed_loop.py` | ✅ | delta=+100pp → kandydat zapisany |
+| v3 BLOK 4 | `router/feedback.py` (log + record_outcome) | ✅ | memory2 integration PASS |
+| v3 BLOK 4 | `router/calibration.py` (reguły kalibracji) | ✅ | force_local/no_escalate PASS |
+| v3 BLOK 4 | `router/report.py` (raport + mock demo) | ✅ | ASCII tabela PASS |
+| v3 BLOK 4 | `router/router.py` (feedback integration) | ✅ | log_decision + record_outcome wpiąte |
+
+---
+
 ## Tabela statusów v2 (2026-06-02)
 
 | Blok | Moduł | Status | Smoke test |
@@ -168,9 +256,69 @@
 
 ---
 
+### 🖨️ print-lab — Pipeline wydruku 3D (Elegoo Centauri Carbon)
+- **Ścieżka:** `~/print-lab/`
+- **Git:** lokalny (bez remote — push odłożony)
+- **Uruchomienie:**
+  ```bash
+  # Pełny pipeline: parametry → STL → G-code → plan PDF
+  python3 ~/print-lab/scripts/pipeline.py phone_stand --params phone_w=75 --material PLA
+  python3 ~/print-lab/scripts/pipeline.py --demo   # demo gotowe
+
+  # Tylko model
+  python3 ~/print-lab/scripts/generate_model.py --list
+  python3 ~/print-lab/scripts/generate_model.py box_organizer --params outer_w=120
+
+  # Tylko plan z istniejącego G-code
+  python3 ~/print-lab/scripts/slice_and_plan.py model.stl --material PETG
+  ```
+- **Szablony OpenSCAD:** `phone_stand`, `cable_clip`, `box_organizer` (parametryczne, specs YAML)
+- **Profile:** PLA, PETG, CF-Nylon × PrusaSlicer CLI + OrcaSlicer/ElegooSlicer JSON
+- **Drukarka:** Elegoo Centauri Carbon, 256×256×256mm, CoreXY, dysza 0.4mm hartowana
+- **Zależności:** OpenSCAD (brew), PrusaSlicer (brew), pyyaml, reportlab
+- **Demo wynik:** stojak na telefon PLA → 1h 13m, 18g, 0.45 PLN
+
+---
+
 ## Ocena: o ile realnie urosła zdolność agenta
 
-### Co faktycznie się poprawiło (BLOK 1–4):
+### Szczera ocena v3 (2026-06-03) — BLOK 1–4:
+
+**Wzrost realny: umiarkowany, ale konkretny. Nie jest to skok jakościowy — to wypełnianie infrastruktury.**
+
+#### BLOK 1 — Browser Use: +++ realna wartość
+- Agent może teraz autonomicznie scrapeować strony, wypełniać formularze i wyodrębniać dane strukturalne.
+- `extract(schema)` przez LLM to rzeczywisty przyrost — wcześniej trzeba było pisać XPath/CSS ręcznie.
+- `desktop_screenshot()` jest dekoracją — read-only bez klikania ma ograniczoną wartość praktyczną.
+- Ograniczenie: whitelist domen jest bezpieczna ale wymaga ręcznej edycji `config.yaml` przy każdej nowej stronie.
+
+#### BLOK 2 — Pamięć 2.0: +++ infrastruktura gotowa, użyteczność zależy od integracji
+- 3 typy pamięci to właściwa architektura — episodic/semantic/procedural mają różne zastosowania.
+- `recall_context()` to kluczowa funkcja: agent może teraz "pamiętać" jak robił coś podobnego.
+- Słabość: semantyczny recall w języku polskim przez nomic-embed jest słabszy niż angielski.
+  Ranking nie zawsze zwraca tę samą treść co query — to feature modelu, nie bug kodu.
+- Pamięć nie jest jeszcze wpiąta w orchestrator (zostało jako `TODO`).
+
+#### BLOK 3 — Self-Improvement: + infrastruktura, brak realnego loop bez LLM
+- SWE runner z exec testami to solidna podstawa do mierzenia postępu — lepszy niż substring-matching.
+- `closed_loop.py` jest poprawnie zarchitekturowany: zawsze wymaga human review, nie auto-merge.
+- Ograniczenie: "closed" loop jest naprawdę zamknięty tylko jeśli LLM jest online. Bez Ollamy
+  analiza jest pusta, patch to placeholder. Demo bez LLM musi używać hard-coded fixed_code.
+- Wartość: mamy teraz metrykę do porównywania "przed i po" — to ważniejsze niż sam patcher.
+
+#### BLOK 4 — Router Feedback: ++ spójne domknięcie, wartość zależy od danych
+- Kalibracja na podstawie historii to sensowny algorytm — `force_local` gdy local_rate ≥ 80%.
+- Problem: potrzeba N ≥ 3 decyzji per (backend, task_class) żeby kalibracja cokolwiek zrobiła.
+  Na nowej instalacji przez pierwsze 20-30 sesji kalibracja jest "brak zmian".
+- Raport `--mock` pokazuje jak system będzie wyglądał z dojrzałymi danymi — to ważne.
+
+#### Co naprawdę podniesie skuteczność (priorytet do zrobienia):
+1. **Wpiąć memory2 w orchestrator** — `recall_context(task)` jako pierwszy krok każdego zadania
+2. **Rozszerzyć whitelist browser** + przetestować na rzeczywistych zadaniach scrapingu
+3. **Zebrać 30+ decyzji routera** żeby kalibracja miała na czym działać
+4. **SWE runner z modelem** — uruchomić `swe_runner.py` z deepseek-coder i zmierzyć baseline
+
+### Co faktycznie się poprawiło (BLOK 1–4 v2):
 1. **MCP klient** — agent może wywoływać narzędzia z zewnętrznych serwerów MCP bez dodatkowego kodu.
 2. **MCP serwer** — nasze narzędzia dostępne dla Claude Desktop i innych aplikacji MCP-compatible.
 3. **Verifier** — agent przestaje "udawać sukces". Weryfikuje canvas, pętlę gry, składnię, pytest.

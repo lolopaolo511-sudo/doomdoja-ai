@@ -1,6 +1,6 @@
 # doomdoja-ai — Kompletna instrukcja użytkowania
 
-> Autor: doomdoja | Model: deepseek-coder-v2:16b + qwen2.5-coder | Data: 2026-06-02
+> Autor: doomdoja | Model: deepseek-coder-v2:16b + qwen2.5-coder | Data: 2026-06-03
 
 ---
 
@@ -9,6 +9,10 @@
 1. [Tabela portów i adresów](#tabela-portów)
 2. [Lokalny agent / multi-agent](#lokalny-agent--multi-agent)
 3. [Hybrid Router — local vs cloud](#hybrid-router--local-vs-cloud)
+   - [Router Feedback + Raport](#router-feedback--raport)
+4. [Computer/Browser Use](#computerbrowser-use-v3)
+5. [Pamięć 2.0 (memory2)](#pamięć-20-memory2-v3)
+6. [Self-Improvement / Eval](#self-improvement--eval-v3)
 4. [aider — autonomiczny koder](#aider--autonomiczny-koder)
 5. [Continue.dev — IDE autocomplete](#continuedev--ide-autocomplete)
 6. [Scraper (qwen-scraper)](#scraper-qwen-scraper)
@@ -722,4 +726,104 @@ W dowolnym momencie:
 
 ---
 
-*Dokumentacja wygenerowana: 2026-06-02 | System: doomdoja-ai | Mac M4*
+---
+
+## Computer/Browser Use (v3)
+
+**Wymagania:** `pip install playwright && playwright install chromium`
+
+```bash
+# Demo: nawigacja + odczyt + wypełnienie formularza (bez submit)
+python3 ~/qwen-agent/computer_use/demo.py
+
+# Rejestracja narzędzi w własnym TOOL_REGISTRY
+from computer_use.register import register_computer_use_tools
+register_computer_use_tools(my_tool_list)  # dodaje 7 narzędzi
+
+# Użycie bezpośrednie
+from computer_use.browser_agent import BrowserAgent
+import asyncio
+async def main():
+    agent = BrowserAgent(headless=True)
+    await agent.navigate("http://quotes.toscrape.com")
+    result = await agent.read_page(".quote .text")
+    print(result.data["text"])
+    await agent.close()
+asyncio.run(main())
+
+# Desktop screenshot (read-only, macOS)
+from computer_use.desktop import desktop_screenshot
+desktop_screenshot("podgląd.png")  # ~/.qwen_agent/screenshots/
+```
+
+**Dodaj domenę do whitelist:** edytuj `~/qwen-agent/computer_use/config.yaml` → `allowed_domains`.
+
+---
+
+## Pamięć 2.0 — memory2 (v3)
+
+```bash
+# CLI
+python3 ~/qwen-agent/memory2/cli.py remember semantic "Python dict O(1)" --tags python
+python3 ~/qwen-agent/memory2/cli.py remember episodic "Zadanie X ukończone" --outcome success --task-id t001
+python3 ~/qwen-agent/memory2/cli.py remember procedural "Jak scrapować" --name scrape_table --steps "navigate" "read" "extract"
+python3 ~/qwen-agent/memory2/cli.py recall "szybkość dict"
+python3 ~/qwen-agent/memory2/cli.py recall "scraping" --type procedural
+python3 ~/qwen-agent/memory2/cli.py recall "..." --context  # blok do wklejenia w prompt
+python3 ~/qwen-agent/memory2/cli.py status
+
+# Python API
+from memory2 import Memory2
+mem = Memory2()
+mem.remember("semantic", "treść", tags=["tag"])
+mem.remember("episodic", "zdarzenie", meta={"task_id":"x","outcome":"success"})
+ctx = mem.recall_context("opis zadania")  # blok kontekstu do promptu
+```
+
+**Backend semantyczny:** Qdrant REST (`localhost:6333`, kolekcja `agent_semantic`).
+Fallback SQLite gdy Qdrant niedostępny.
+
+---
+
+## Self-Improvement / Eval (v3)
+
+```bash
+# SWE runner — wszystkie zadania przez LLM
+python3 ~/qwen-agent/evals/swe_runner.py --model deepseek-coder-v2:16b
+
+# Konkretne zadanie z gotowym kodem (bez LLM)
+python3 ~/qwen-agent/evals/swe_runner.py --task swe_fix_offbyone \
+  --code-override "def fizzbuzz(n): return [str(i) for i in range(1,n+1)]"
+
+# Closed-loop demo (wstrzyknięty bug → wykrycie → patch → eval)
+cd ~/qwen-agent && python3 -c "
+from self_improve.closed_loop import ClosedLoop
+ClosedLoop().run_demo()
+"
+
+# Analiza nagromadzonych błędów
+python3 ~/qwen-agent/self_improve/analyzer.py
+# Propozycje: ~/qwen-agent/self_improve/proposals/ (DO REVIEW, nie auto-merge)
+```
+
+---
+
+## Router Feedback + Raport
+
+```bash
+# Raport skuteczności (mock — bez danych historycznych)
+python3 ~/qwen-agent/router/report.py --mock
+
+# Raport z prawdziwych danych (po zebraniu historii decyzji)
+python3 ~/qwen-agent/router/report.py
+
+# JSON (do CI/dashboard)
+python3 ~/qwen-agent/router/report.py --mock --json
+```
+
+Feedback jest zbierany automatycznie gdy router działa w orchestratorze.
+Kalibracja ładuje się przy starcie routera jeśli w memory2 są dane (min. 3 próbki per klasa).
+
+---
+
+*Dokumentacja wygenerowana: 2026-06-03 | System: doomdoja-ai | Mac M4*
