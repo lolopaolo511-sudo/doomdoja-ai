@@ -1,0 +1,18 @@
+{
+  "_comment": "Wklej zawartość 'mcpServers' do claude_desktop_config.json — patrz instrukcja poniżej",
+  "mcpServers": {
+    "doomdoja-agent": {
+      "command": "/opt/homebrew/bin/python3",
+      "args": [
+        "/Users/doomdoja/qwen-agent/mcp/server.py",
+        "--mode",
+        "stdio"
+      ],
+      "env": {
+        "PYTHONPATH": "/Users/doomdoja/qwen-agent",
+        "OLLAMA_URL": "http://localhost:11434",
+        "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
+      }
+    }
+  }
+}
