@@ -1,14 +1,15 @@
 # doomdoja-ai — Kompletna instrukcja użytkowania
 
-> Autor: doomdoja | Model: deepseek-coder-v2:16b + qwen2.5-coder | Data: 2026-06-03
+> Autor: doomdoja | Model: deepseek-coder-v2:16b + qwen2.5-coder | Data: 2026-06-04
 
 ---
 
 ## Spis treści
 
 1. [Tabela portów i adresów](#tabela-portów)
-2. [Lokalny agent / multi-agent](#lokalny-agent--multi-agent)
-3. [Hybrid Router — local vs cloud](#hybrid-router--local-vs-cloud)
+2. [Manager — kolejka zadań (NOWE)](#manager--kolejka-zadań)
+3. [Lokalny agent / multi-agent](#lokalny-agent--multi-agent)
+4. [Hybrid Router — local vs cloud](#hybrid-router--local-vs-cloud)
    - [Router Feedback + Raport](#router-feedback--raport)
 4. [Computer/Browser Use](#computerbrowser-use-v3)
 5. [Pamięć 2.0 (memory2)](#pamięć-20-memory2-v3)
@@ -81,6 +82,65 @@ PYTHONPATH=/tmp python3 orchestrator.py "zadanie" --plan-only --work-dir /tmp/te
 - `ModuleNotFoundError: No module named 'qwen_agent'` → `ln -sf ~/qwen-agent /tmp/qwen_agent`
 - Timeout → zmniejsz zadanie lub użyj `--max-rounds 1`
 - Niekompletny plik → dla HTML/Frontend lokalny 16B model generuje fragmenty, nie pełne pliki
+
+---
+
+## Manager — kolejka zadań
+
+**Co robi:** przyjmuje zadania przez kolejkę plików (inbox → outbox), wysyła je do lokalnego Ollama (gratis) lub eskaluje do clouda gdy potrzeba. Daemon obserwuje `inbox/` co 2s.
+
+### Uruchomienie daemona
+
+```bash
+# Jednorazowo:
+python3 ~/qwen-agent/manager/daemon.py --start
+
+# Autostart przez launchd (zalecane):
+~/qwen-agent/manager/launchd_install.sh install
+```
+
+### CLI local-do
+
+```bash
+local-do "napisz test pytest dla licz_vat"        # domyślnie auto-router
+local-do "parsuj CSV" --local                      # wymuś Ollama
+local-do "architektura systemu" --auto             # router decyduje
+local-do "zadanie" --budget 1024 --priority 9      # limity
+local-do "coś długiego" --async                    # nie czekaj
+local-do --status                                  # stan kolejki
+local-do --list                                    # ostatnie wyniki
+local-do --result TASK_ID                          # pobierz po ID
+```
+
+### Reguły triażu
+
+| Typ zadania | Decyzja |
+|-------------|---------|
+| Parser, CRUD, test, config, szablon | 🏠 LOCAL |
+| Architektura, debugging złożone, prod | ☁️ ESCALATE |
+| Dane z hasłem / tokenem / PESEL | 🏠 LOCAL (wymuszone) |
+| Po 2+ failach verifier | ☁️ ESCALATE (auto) |
+
+Pełna tabela: `~/qwen-agent/manager/TRIAGE.md`
+
+### Wynik w outbox/
+
+```json
+{
+  "id": "demo_licz_vat",
+  "status": "done",
+  "model_used": "deepseek-coder-v2:16b",
+  "backend": "local",
+  "tokens_estimated": 211,
+  "duration_s": 27.8,
+  "verifier_passed": true
+}
+```
+
+### MCP w Claude Desktop
+
+Snippet do wklejenia: `~/qwen-agent/manager/claude_desktop_mcp_snippet.json`  
+Instrukcja: `~/qwen-agent/manager/MCP_SETUP.md`
 
 ---
 

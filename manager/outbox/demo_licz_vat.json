@@ -1,0 +1,13 @@
+{
+  "id": "demo_licz_vat",
+  "status": "done",
+  "output": "Oczywiście! Poniżej znajduje się funkcja Python `licz_vat` oraz test pytest sprawdzający jej poprawność.\n\n### Funkcja Python\n\n```python\ndef licz_vat(netto: float, stawka: float = 0.23) -> dict:\n    vat = netto * stawka\n    brutto = netto + vat\n    return {\"netto\": netto, \"vat\": vat, \"brutto\": brutto}\n```\n\n### Test pytest\n\n```python\nimport pytest\n\ndef test_licz_vat():\n    assert licz_vat(100.0, 0.23) == {\"netto\": 100.0, \"vat\": 23.0, \"brutto\": 123.0}\n\n# Dodatkowy test sprawdzający domyślną stawkę VAT\ndef test_licz_vat_default():\n    assert licz_vat(100.0) == {\"netto\": 100.0, \"vat\": 23.0, \"brutto\": 123.0}\n```\n\n### Wyjaśnienie\n\n1. **Funkcja `licz_vat`**:\n   - Przyjmuje dwa argumenty: `netto` (wartość netto) oraz opcjonalny argument `stawka` (domyślnie 0.23).\n   - Oblicza wartość VAT jako iloczyn netto i stawki.\n   - Oblicza wartość brutto jako sumę netto i VAT.\n   - Zwraca słownik z kluczami `netto`, `vat` i `brutto`.\n\n2. **Test pytest**:\n   - Pierwszy test sprawdza, czy funkcja poprawnie oblicza wartości dla podanych argumentów: netto=100.0, stawka=0.23.\n   - Drugi test sprawdza, czy funkcja używa domyślnej stawki VAT (0.23) jeśli nie została podana.\n\n### Uruchomienie testów\n\nAby uruchomić te testy, musisz mieć zainstalowane pytest w swoim środowisku Python. Możesz to zrobić za pomocą pip:\n\n```sh\npip install pytest\n```\n\nNastępnie możesz uruchomić testy za pomocą polecenia:\n\n```sh\npytest nazwa_pliku_z_testami.py\n```\n\nW tym przypadku, jeśli masz plik z testami o nazwie `test_licz_vat.py`, uruchomisz:\n\n```sh\npytest test_licz_vat.py\n```",
+  "model_used": "deepseek-coder-v2:16b",
+  "backend": "local",
+  "tokens_estimated": 211,
+  "duration_s": 27.833,
+  "verifier_passed": true,
+  "error": null,
+  "completed_at": "2026-06-04T15:55:00.134751",
+  "task_preview": "Napisz funkcję Python `licz_vat(netto: float, stawka: float = 0.23) -> dict` która zwraca słownik z kluczami: netto, vat"
+}

@@ -246,7 +246,7 @@ class ManagerDaemon:
 
     def _scan_inbox(self):
         candidates: list[Path] = sorted(
-            INBOX_DIR.glob("*.json") | INBOX_DIR.glob("*.yaml") | INBOX_DIR.glob("*.yml"),
+            list(INBOX_DIR.glob("*.json")) + list(INBOX_DIR.glob("*.yaml")) + list(INBOX_DIR.glob("*.yml")),
             key=lambda p: p.stat().st_mtime,
         )
         if candidates:

@@ -1,5 +1,5 @@
 # doomdoja-ai — Indeks systemu AI
-> Ostatnia aktualizacja: 2026-06-03
+> Ostatnia aktualizacja: 2026-06-04
 
 ---
 
@@ -33,6 +33,22 @@
   ```
 - **Profile:** `~/qwen-agent/prompt-library/` — `01-lead-generation`, itd.
 - **Zależności:** Ollama, Airtable API, n8n webhook
+
+### 🎛️ manager — Warstwa kolejkowania + triażu (NOWE 2026-06-04)
+- **Ścieżka:** `~/qwen-agent/manager/`
+- **Cel:** łatwe zadania → Ollama lokalnie (gratis), trudne → eskalacja do cloud
+- **Uruchomienie:**
+  ```bash
+  python3 ~/qwen-agent/manager/daemon.py --start          # daemon kolejki
+  local-do "napisz funkcję Python licz_vat"               # CLI z czekaniem
+  local-do "zadanie" --local --budget 1024                # wymuś lokalny
+  local-do --status                                       # status kolejki
+  ~/qwen-agent/manager/launchd_install.sh install         # autostart
+  ```
+- **Kolejka:** `inbox/` → `processing/` → `outbox/` | `failed/`
+- **Triax:** `triage.py::classify_task()` — local vs escalate
+- **MCP snippet:** `manager/claude_desktop_mcp_snippet.json` + `MCP_SETUP.md`
+- **Dokumentacja:** `manager/README.md`, `manager/TRIAGE.md`
 
 ### 🕷️ qwen-scraper — Pipeline scrapingowy
 - **Ścieżka:** `~/qwen-scraper/`
