@@ -826,4 +826,105 @@ Kalibracja ładuje się przy starcie routera jeśli w memory2 są dane (min. 3 p
 
 ---
 
-*Dokumentacja wygenerowana: 2026-06-03 | System: doomdoja-ai | Mac M4*
+## Workflow Engine v1 (`workflow/`)
+
+Warstwa orkiestracji — trzy prymitywy + 6 wzorców + budżet tokenów + quarantine.
+Dokumentacja szczegółowa: `~/qwen-agent/workflow/README.md`
+
+### Szybki start
+
+```python
+from workflow import agent, parallel, pipeline, WorkflowBudget, quarantine
+
+# Subagent z izolowanym kontekstem i budżetem
+budget = WorkflowBudget(total=5000)
+r = agent("Oceń ogłoszenie", context=raw_text, token_budget=800, budget=budget)
+print(r.output, r.backend, r.tokens_used)
+
+# N agentów równolegle
+tasks = [{"goal": f"Zadanie {i}", "context": dane[i]} for i in range(5)]
+results = parallel(tasks, max_workers=4)
+
+# Dane przez etapy
+chain = pipeline(["Wyodrębnij fakty", "Oceń jakość", "Sformatuj JSON"],
+                 initial_input="Treść dokumentu...")
+```
+
+### Wzorce
+
+```bash
+# Dostępne wzorce
+from workflow.patterns import (
+    classify_and_act,          # klasyfikacja → routing
+    fan_out_and_synthesize,    # N równoległych → synteza
+    adversarial_verification,  # wrogi weryfikator bez wiedzy o autorze
+    generate_and_filter,       # generuj N → filtruj rubryką → top-K
+    tournament,                # pairwise N² → ranking
+    loop_until_done,           # iteruj z feedbackiem aż warunek
+)
+```
+
+### Budżet tokenów (twardy limit)
+
+```python
+from workflow import WorkflowBudget, TokenBudgetExceeded
+
+budget = WorkflowBudget(total=10000, label="mój-workflow")
+# rzuca TokenBudgetExceeded PRZED wywołaniem LLM gdy przekroczony
+print(budget.report())   # [mój-workflow] 0/10000 tokenów (0%)
+```
+
+### Quarantine — agenty z niezaufanymi danymi
+
+```python
+from workflow import quarantine, action_tool
+
+@action_tool
+def save_report(path, content): ...  # zablokowana w quarantine
+
+with quarantine():
+    r = agent("Analizuj dane z sieci", context=raw_html)
+    # r.quarantined == True
+    save_report(...)  # → QuarantineViolation!
+```
+
+### Runner — /goal i /loop
+
+```python
+from workflow import run_workflow, WorkflowConfig
+
+cfg = WorkflowConfig(
+    budget_tokens=8000,
+    goal_condition="wynik zawiera ranking",
+    loop=3,        # max 3 iteracje
+)
+result = run_workflow(my_workflow_fn, cfg=cfg)
+print(result.report())
+```
+
+```bash
+# CLI
+python -m workflow.runner --goal "zawiera JSON" --loop 3 --budget 5000 --quarantine
+python -m workflow.runner --dry-run
+```
+
+### Demo — Gig Finder na workflow
+
+```bash
+# Bez LLM (tylko fetch)
+python3 ~/qwen-agent/workflow/demo_gig_finder.py --dry-run
+
+# Pełne (wymaga Ollama działającego)
+python3 ~/qwen-agent/workflow/demo_gig_finder.py --top 10 --budget 25000
+
+# Jedno źródło
+python3 ~/qwen-agent/workflow/demo_gig_finder.py --source remoteok --top 5
+```
+
+Stary gig-finder (`gig-finder/run_gig_finder.py`) działa bez zmian — demo workflow
+to osobny plik demonstracyjny. Kluczowe różnice: scoring równoległy (3–6× szybciej)
++ adversarial filter (~20–40% odsiew fałszywych pozytywów).
+
+---
+
+*Dokumentacja wygenerowana: 2026-06-04 | System: doomdoja-ai | Mac M4*

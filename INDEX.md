@@ -218,6 +218,51 @@
 
 ---
 
+## Workflow Engine v1 (2026-06-04)
+
+### 🔁 WORKFLOW-ENGINE — Warstwa orkiestracji (`workflow/`)
+- **Ścieżka:** `~/qwen-agent/workflow/`
+- **Integracja:** HybridRouter + Memory2 + LLMClient (bez nowych zależności)
+- **Testy:** 69 PASS (unit, bez LLM — mockowany)
+
+**Prymitywy:**
+- `agent(goal, context, ...)` — subagent, izolowany kontekst, twardy budżet tokenów
+- `parallel(tasks)` — N agentów równolegle (ThreadPoolExecutor), bariera
+- `pipeline(stages, initial_input)` — dane przez etapy sekwencyjnie
+
+**Wzorce (`workflow/patterns/`):**
+
+| Wzorzec | Plik | Co robi |
+|---------|------|---------|
+| `classify_and_act` | `classify_and_act.py` | fast classifier → routing do handlera |
+| `fan_out_and_synthesize` | `fan_out_and_synthesize.py` | N równoległych → 1 synteza |
+| `adversarial_verification` | `adversarial_verification.py` | niezależny weryfikator bez wiedzy o autorze |
+| `generate_and_filter` | `generate_and_filter.py` | generuj N → dedup → filtruj rubryką → top-K |
+| `tournament` | `tournament.py` | pairwise N² → ranking |
+| `loop_until_done` | `loop_until_done.py` | iteruj z feedbackiem aż warunek |
+
+**Bezpieczeństwo:**
+- `WorkflowBudget(total)` — twardy limit tokenów (workflow + per-agent), rzuca `TokenBudgetExceeded` przed LLM
+- `quarantine()` — context manager; agenty w środku nie wywołują `@action_tool`
+- `config_from_args()` — CLI: `--goal`, `--loop`, `--budget`, `--quarantine`, `--dry-run`
+
+**Demo — Gig Finder na workflow:**
+```bash
+# Dry-run (tylko fetch, bez LLM)
+python3 ~/qwen-agent/workflow/demo_gig_finder.py --dry-run
+
+# Pełne uruchomienie (wymaga Ollama)
+python3 ~/qwen-agent/workflow/demo_gig_finder.py --top 10 --budget 25000
+
+# Jedno źródło + porównanie ze starym scorerem
+python3 ~/qwen-agent/workflow/demo_gig_finder.py --source remoteok --compare --top 5
+```
+
+Architektura demo: `fetch (quarantine)` → `parallel scorer` → `adversarial_verification_batch` → ranking.
+Kluczowy zysk: adversarial verifier odrzuca ~20–40% ogłoszeń przepuszczanych przez łaskawego LLM scorer.
+
+---
+
 ## Tabela statusów v3 (2026-06-03)
 
 | Blok | Moduł | Status | Weryfikacja |

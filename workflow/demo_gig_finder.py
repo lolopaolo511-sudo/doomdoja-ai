@@ -394,7 +394,7 @@ def gig_finder_workflow(
         rubric=_ADVERSARIAL_RUBRIC,
         pass_threshold=adv_pass_threshold,
         max_workers=max_workers,
-        token_budget_per_item=600,
+        token_budget_per_item=1200,   # prompt adversarial ~500 tok → 1200 daje luz
         budget=budget,
         session_id=session_id,
     )
