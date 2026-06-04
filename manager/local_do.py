@@ -113,26 +113,51 @@ def _print_result(result: dict):
     if sys.stdout.isatty():
         print()  # newline po kropkach
 
-    status = result.get("status", "?")
-    model = result.get("model_used", "?")
+    status  = result.get("status", "?")
+    level   = result.get("level", "?")
+    model   = result.get("model_used", "?")
     backend = result.get("backend", "?")
-    tokens = result.get("tokens_estimated", "?")
+    tokens  = result.get("tokens_estimated", "?")
     duration = result.get("duration_s", "?")
+    rounds  = result.get("rounds", "?")
     verifier = result.get("verifier_passed", False)
-    output = result.get("output") or result.get("error") or "(brak wyniku)"
+    esc_reason = result.get("escalation_reason")
+    signals = result.get("level_signals", [])
+    output  = result.get("output") or result.get("error") or "(brak wyniku)"
 
-    icon = _colored("✓", C.GREEN, C.BOLD) if status == "done" else _colored("✗", C.RED, C.BOLD)
-    backend_icon = "🏠" if backend == "local" else "☁️"
+    level_icons = {"EASY": _colored("🟢 EASY", C.GREEN), "MEDIUM": _colored("🟡 MEDIUM", C.YELLOW),
+                   "HARD": _colored("🔴 HARD", C.RED), "?": "?"}
+    status_icon = {
+        "done": _colored("✓", C.GREEN, C.BOLD),
+        "needs_escalation": _colored("⬆", C.YELLOW, C.BOLD),
+        "failed": _colored("✗", C.RED, C.BOLD),
+    }.get(status, "?")
+
+    backend_icon = "🏠" if backend == "local" else ("☁️ " if backend == "cloud" else "–")
     verifier_icon = _colored("✓", C.GREEN) if verifier else _colored("✗", C.YELLOW)
 
-    print(f"\n{icon} {_colored('STATUS', C.BOLD)}: {status.upper()}")
+    print(f"\n{status_icon} {_colored('STATUS', C.BOLD)}: {status.upper()}")
+    print(f"   🏷  poziom:   {level_icons.get(level, level)}", end="")
+    if signals:
+        print(f"  {_colored('(' + ', '.join(signals[:3]) + ')', C.GRAY)}", end="")
+    print()
     print(f"   {backend_icon} model:    {_colored(model, C.CYAN)}")
     print(f"   ⏱  czas:     {duration}s")
-    print(f"   📊 tokeny~:  {tokens}")
+    print(f"   📊 tokeny~:  {tokens}   rundy: {rounds}")
     print(f"   🔍 verifier: {verifier_icon}")
-    print(f"\n{_colored('─' * 60, C.GRAY)}")
-    print(output)
-    print(_colored("─" * 60, C.GRAY))
+
+    if status == "needs_escalation":
+        print(f"\n   {_colored('⬆  Wymaga eskalacji do cloud:', C.YELLOW, C.BOLD)}")
+        print(f"   {_colored(esc_reason or '(brak szczegółów)', C.YELLOW)}")
+        print(f"\n   {_colored('Jak uruchomić ręcznie w Claude/cloud:', C.GRAY)}")
+        print(f"   {_colored('  Skopiuj zadanie z task_preview i wyślij bezpośrednio do Claude Desktop', C.GRAY)}")
+    else:
+        print(f"\n{_colored('─' * 60, C.GRAY)}")
+        print(output)
+        print(_colored("─" * 60, C.GRAY))
+
+    if esc_reason and status != "needs_escalation":
+        print(f"\n   {_colored('ℹ  Eskalowano:', C.CYAN)} {esc_reason}")
 
 
 # ── KOMENDY ───────────────────────────────────────────────────────────────────

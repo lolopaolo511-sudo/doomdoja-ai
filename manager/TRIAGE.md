@@ -1,93 +1,144 @@
-# Reguły triażu — co lokalnie, co eskalować
+# Reguły triażu — 3-poziomowy podział EASY / MEDIUM / HARD
 
-> Wersja: 2026-06-04 | Źródło prawdy dla `classify_task()` w `triage.py`
-
----
-
-## Zasada ogólna
-
-**Lokalnie** = zadanie jest dobrze określone, mechaniczne, ma jasny schemat wejście→wyjście.  
-**Eskaluj** = zadanie wymaga oceny, doświadczenia architektonicznego lub jest wysokiej stawki.
-
-Gdy wątpliwe → **lokalnie najpierw**, weryfikator sprawdzi wynik. Jeśli fail → auto-eskalacja.
+> Wersja: 2026-06-04 | Źródło prawdy dla `classify_level()` w `level.py`
 
 ---
 
-## Tabela decyzji
+## Polityka per poziom
 
-| Kategoria | Przykłady | Decyzja |
-|-----------|-----------|---------|
-| **Skrypty CRUD** | parser CSV/JSON, insert/select SQLite, walidator danych, konwerter formatów | 🏠 LOCAL |
-| **Prosta funkcja** | obliczenia matematyczne, regex, transformacja stringa, sortowanie | 🏠 LOCAL |
-| **Testy jednostkowe** | pytest dla gotowej funkcji, fixture, mock prostej zależności | 🏠 LOCAL |
-| **Konfigi i boilerplate** | `.gitignore`, `pyproject.toml`, `Dockerfile` wg szablonu, env przykład | 🏠 LOCAL |
-| **Scraping wg schematu** | Playwright/httpx wg gotowego selektora, ekstrakcja pola ze strony | 🏠 LOCAL |
-| **Raporty i formatowanie** | tabela Markdown, generowanie PDF/Excel z danych, wykres matplotlib | 🏠 LOCAL |
-| **Refaktor lokalny** | zmiana nazw, ekstrakcja funkcji, usunięcie duplikacji w <200 linii | 🏠 LOCAL |
-| **Prosty moduł** | klasa dataclass, helper utils, wrapper API wg przykładu | 🏠 LOCAL |
-| **Dokumentacja inline** | docstring, komentarze do istniejącego kodu, README sekcja | 🏠 LOCAL |
-| **Bash/shell** | prosty skrypt, one-liner, cron entry, launchd plist wg szablonu | 🏠 LOCAL |
-| **Dane prywatne** | zadanie zawiera hasło, token, klucz API, PESEL, dane osobowe | 🏠 LOCAL (wymuszone!) |
-| **Architektura systemu** | projektowanie mikroserwisów, schematu DB dla nowego projektu, decyzja tech-stack | ☁️ ESCALATE |
-| **Debugowanie złożone** | błąd trudny do odtworzenia, race condition, memory leak, problem w >3 plikach | ☁️ ESCALATE |
-| **Nowe rozwiązania** | algorytm gdzie nie ma gotowego wzorca, nowa integracja API bez dokumentacji | ☁️ ESCALATE |
-| **Wysoka stawka** | kod produkcyjny na live, migracja bazy danych z danymi, zmiana w CI/CD | ☁️ ESCALATE |
-| **Wieloplikowy refaktor** | przepisanie modułu >500 linii, zmiana interfejsów publicznych, breaking changes | ☁️ ESCALATE |
-| **Analiza i strategia** | ocena ryzyka, planowanie roadmapy, code review całego PR, propozycja architektury | ☁️ ESCALATE |
-| **Zadania długie** | zadanie >800 znaków lub >4 kroki planera | ☁️ ESCALATE (preferowane) |
-| **Po 2+ failach verifier** | dowolne zadanie, które lokalnie zawiodło ≥2 razy | ☁️ ESCALATE (auto) |
+| Poziom | Ikona | Polityka daemona |
+|--------|-------|-----------------|
+| **EASY** | 🟢 | Lokalny model bez eskalacji. Verifier opcjonalny (wystarczy niepusta odpowiedź). |
+| **MEDIUM** | 🟡 | Lokalny NAJPIERW. Verifier sprawdza wynik. Jeśli fail po N rundach (domyślnie 2) → eskalacja przez router do cloud. |
+| **HARD** | 🔴 | Od razu `needs_escalation` w outbox. Bez marnowania rund lokalnie. Uzasadnienie w polu `escalation_reason`. |
+
+Pole `mode: local` w zadaniu wymusza EASY (niezależnie od klasyfikacji).
 
 ---
 
-## Sygnały językowe
+## Tabela decyzji EASY / MEDIUM / HARD
 
-### Słowa → LOCAL
-`prosty`, `szybki`, `jednolinijkowy`, `print`, `konwersja`, `parser`, `CRUD`,
-`test`, `fixture`, `config`, `template`, `szablon`, `rename`, `zmień nazwę`,
-`dodaj komentarz`, `docstring`, `skrypt bash`, `one-liner`, `przelicz`
+### 🟢 EASY — Lokalny model, bez eskalacji
 
-### Słowa → ESCALATE
-`architektura`, `system`, `refaktor całego`, `debuguj`, `race condition`,
-`produkcja`, `migracja`, `integracja`, `skomplikowany`, `optymalizuj`,
-`wielowątkowy`, `async`, `deployment`, `zaprojektuj`, `oceń`, `przeanalizuj całość`
+| Kategoria | Przykłady |
+|-----------|-----------|
+| **Prosta funkcja** | `licz_vat(netto, stawka)`, sortowanie, regex, transformacja stringa |
+| **CRUD / parser** | parser CSV/JSON, insert/select SQLite, walidator pola |
+| **Test jednostkowy** | pytest dla gotowej funkcji, fixture, mock prostej zależności |
+| **Konfigi / boilerplate** | `.gitignore`, `Dockerfile` wg szablonu, env przykład, `pyproject.toml` |
+| **Scraping wg schematu** | Playwright wg gotowego selektora, ekstrakcja pola ze strony |
+| **Formatowanie / raport** | tabela Markdown, eksport do CSV, prosty wykres matplotlib |
+| **Dokumentacja** | docstring, komentarze do istniejącego kodu, README sekcja |
+| **Bash / shell** | prosty skrypt, one-liner, cron entry, launchd plist |
+| **Dane prywatne** | zadanie z hasłem / tokenem / PESEL — wymuszone local-only |
 
-### Słowa → LOCAL (wymuszone — privacy)
-`hasło`, `password`, `token`, `secret`, `api_key`, `klucz api`, `PESEL`,
-`prywatny`, `credential`, `bearer`, `authorization`, `private key`, `ssh key`
+**Sygnały → EASY:** `prosty`, `test`, `pytest`, `parser`, `crud`, `config`, `szablon`, `one-liner`, `docstring`, `rename`, `przelicz`, `pojedyncz`, `1 plik`
 
 ---
 
-## Wzory użycia w kodzie
+### 🟡 MEDIUM — Lokalny NAJPIERW, escalate po failach
 
-```python
-from manager.triage import classify_task
+| Kategoria | Przykłady |
+|-----------|-----------|
+| **Moduł/klasa kilkuplikowa** | klasa z metodami + testy + przykład użycia |
+| **Pipeline prosty** | kilka kroków liniowych, pipeline z 2–3 etapami |
+| **Refaktor modułu ≤200 linii** | ekstrakcja funkcji, przepisanie klasy, zmiana interfejsu |
+| **Integracja z jednym API** | wrapper API wg dokumentacji, klient HTTP z obsługą błędów |
+| **Debugging standardowy** | błąd z traceback, jednoetapowy, odtwarzalny lokalnie |
+| **Zadanie wieloetapowe** | „najpierw X, potem Y, na końcu Z" — 3–4 kroki, znane wzorce |
+| **Skrypt na live (niskie ryzyko)** | skrypt analityczny na live env (read-only) |
 
-decision = classify_task("napisz parser CSV dla pliku z nagłówkami")
-# → "local"
+**Sygnały → MEDIUM:** `pipeline`, `multi-step`, `kilka kroków`, `klasa`, `moduł`, `refaktor`, `integracja`, `wrapper`, `debugging`, `najpierw… potem`
 
-decision = classify_task("zaprojektuj architekturę mikroserwisów dla e-commerce")
-# → "escalate"
+---
 
-decision, reason = classify_task("zadanie", return_reason=True)
-# → ("local", "Prosta operacja mechaniczna — brak słów wysokiej złożoności")
+### 🔴 HARD — Natychmiastowa eskalacja (needs_escalation)
+
+| Kategoria | Przykłady |
+|-----------|-----------|
+| **Architektura** | projektowanie mikroserwisów, schemat DB nowego projektu, decyzja tech-stack |
+| **Debugging złożony** | race condition, memory leak, problem w >3 plikach, nie odtwarzalny |
+| **Produkcja / wysoka stawka** | kod na live, migracja bazy z danymi, breaking change, deploy na prod |
+| **Wieloplikowy refaktor** | przepisanie modułu >500 linii, zmiana publicznych interfejsów |
+| **Analiza i strategia** | code review całego PR, ocena ryzyka, roadmapa, propozycja architektury |
+| **Nowość** | algorytm bez wzorca, integracja bez dokumentacji, nowy protokół |
+| **Pełen kontekst projektu** | „przejrzyj cały repo", „wszystkie moduły", „pełen kontekst" |
+
+**Sygnały → HARD:** `architektur`, `zaprojektuj`, `na produkcji`, `live`, `migracja bazy`, `race condition`, `cały projekt`, `breaking change`, `wymyśl od zera`, `innowac`, `deploy na prod`
+
+---
+
+## Scoring — jak oblicza się poziom
+
+```
+score = 0
++ typ analityczny (+2/hit, max +4)
+- typ mechaniczny (-1/hit, max -2)
++ zakres szeroki  (+2/hit, max +4)
+- zakres wąski    (-1/hit, max -2)
++ trudna weryfikacja (+2/hit, max +4)
+- łatwa weryfikacja  (-1/hit, max -2)  ← test/pytest obniża
++ wieloetapowe   (+1/hit, max +3)
++ nowość         (+3/hit, max +3)
++ stawka         (+4/hit, max +4)  ← "produkcja/live" mocno podnosi
++ duży kontekst  (+2/hit, max +2)
++ długość >800 znaków  +2
++ długość >400 znaków  +1
+
+EASY   → score < 4
+MEDIUM → score 4–6
+HARD   → score ≥ 7
+```
+
+Progi są **konfigurowalne** i **kalibrowane** na podstawie danych historycznych.
+
+---
+
+## Kalibracja automatyczna
+
+Daemon co 20 zadań uruchamia kalibrację (`level_calibration.py`):
+
+| Obserwacja | Zmiana |
+|------------|--------|
+| MEDIUM local rate ≥ 80% przez ≥5 próbek | Obniż próg MEDIUM (więcej zadań jako EASY) |
+| MEDIUM local rate ≤ 40% przez ≥5 próbek | Obniż próg HARD (więcej jako HARD/eskaluj) |
+| Cloud uplift < 10pp dla MEDIUM | Loguj ostrzeżenie — eskalacja nie przynosi wartości |
+| EASY local rate < 60% | Ostrzeżenie — sprawdź scoring |
+
+Progi zapisywane do: `manager/level_calibration_state.json`
+
+Ręczna kalibracja + raport:
+```bash
+python3 ~/qwen-agent/manager/report.py --calibrate
+python3 ~/qwen-agent/manager/report.py --dry-run   # podgląd bez zapisu
 ```
 
 ---
 
-## Integracja z daemonem
+## Polityka prywatności
 
-Daemon (`daemon.py`) przy trybie `auto` wywołuje `HybridRouter` — który implementuje
-te same reguły programowo (pliki `router/config.yaml` + `router/router.py`).
-
-`classify_task()` w `triage.py` jest **lekkim wrapperem** na router — używaj go gdy
-chcesz szybkiej klasyfikacji bez pełnego inicjowania backendu (np. w testach, CLI preview).
+Każde zadanie zawierające słowa: `hasło`, `password`, `token`, `secret`, `api_key`,
+`PESEL`, `klucz api`, `private key`, `bearer` → **wymuszone EASY/local** niezależnie od score.
+Dane wrażliwe **nigdy** nie trafiają do cloud.
 
 ---
 
-## Aktualizacja reguł
+## Użycie w kodzie
 
-Progi złożoności (score ≥ 6 → cloud) edytuj w `router/config.yaml`:
-- `complexity_score_cloud` — próg złożoności dla eskalacji
-- `verifier_fails_escalate` — ile failów verifier przed eskalacją
-- `high_complexity_keywords` — lista słów zwiększających złożoność
-- `low_complexity_keywords` — lista słów zmniejszających złożoność
+```python
+from manager.level import classify_level
+
+r = classify_level("napisz funkcję licz_vat z testem pytest")
+print(r.summary())   # 🟢 EASY (score=0) — werif:test,pytest
+
+r = classify_level("zaprojektuj architekturę na produkcji")
+print(r.summary())   # 🔴 HARD (score=8) — anal:architektur | stawka:na produkcji
+
+r = classify_level("debuguj pipeline na live")
+print(r.summary())   # 🟡 MEDIUM (score=5) — multistep:pipeline | stawka:live
+```
+
+Pełny raport skuteczności:
+```bash
+python3 ~/qwen-agent/manager/report.py
+```

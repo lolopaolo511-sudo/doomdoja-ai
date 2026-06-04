@@ -1,0 +1,16 @@
+{
+  "id": "demo_hard_arch",
+  "status": "needs_escalation",
+  "level": "HARD",
+  "output": "",
+  "model_used": "none",
+  "backend": "none",
+  "tokens_estimated": 0,
+  "duration_s": 0.0,
+  "rounds": 0,
+  "verifier_passed": false,
+  "escalation_reason": "HARD: score=11 (EASY<4 MEDIUM<7 HARD≥7) | sygnały: anal:architektur,zaprojektuj, szeroki:system, multistep:pipeline, stawka:na produkcji,bez downtime",
+  "error": null,
+  "completed_at": "2026-06-04T22:29:25.474876",
+  "task_preview": "Zaprojektuj architekturę całej aplikacji SaaS — schemat bazy danych, API endpoints, system autoryzacji, deploy pipeline "
+}

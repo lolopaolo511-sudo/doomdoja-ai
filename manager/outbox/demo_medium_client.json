@@ -1,0 +1,21 @@
+{
+  "id": "demo_medium_client",
+  "status": "done",
+  "level": "MEDIUM",
+  "output": "Aby zdiagnozować błąd integracji systemu z zewnętrznym API, możemy napisać klasę `APIClient` w Pythonie, która obsługuje timeout, retry (3 próby z backoff), walidację odpowiedzi i logowanie każdego kroku. Poniżej znajduje się przykładowa implementacja:\n\n```python\nimport requests\nimport time\nimport logging\nfrom requests.exceptions import RequestException\n\nclass APIClient:\n    def __init__(self, base_url):\n        self.base_url = base_url\n        self.session = requests.Session()\n        self.logger = logging.getLogger(__name__)\n        self.logger.setLevel(logging.DEBUG)\n        handler = logging.StreamHandler()\n        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')\n        handler.setFormatter(formatter)\n        self.logger.addHandler(handler)\n\n    def _request(self, method, url, **kwargs):\n        attempt = 0\n        while True:\n            try:\n                response = self.session.request(method, url, **kwargs)\n                if 200 <= response.status_code < 300:\n                    return response\n                else:\n                    raise RequestException(f\"Request failed with status code {response.status_code}\")\n            except RequestException as e:\n                attempt += 1\n                if attempt >= 3:\n                    self.logger.error(f\"All attempts failed: {e}\")\n                    raise\n                backoff = 2 ** (attempt - 1)\n                time.sleep(backoff)\n                self.logger.warning(f\"Attempt {attempt} failed, retrying in {backoff} seconds...\")\n\n    def get(self, url, params=None, **kwargs):\n        full_url = f\"{self.base_url}{url}\"\n        self.logger.debug(f\"GET request to {full_url} with params: {params}\")\n        response = self._request('get', full_url, params=params, **kwargs)\n        self.logger.debug(f\"Response status code: {response.status_code}\")\n        return response.json()\n\n    def post(self, url, data=None, json=None, **kwargs):\n        full_url = f\"{self.base_url}{url}\"\n        self.logger.debug(f\"POST request to {full_url} with data: {data}\")\n        response = self._request('post', full_url, data=data, json=json, **kwargs)\n        self.logger.debug(f\"Response status code: {response.status_code}\")\n        return response.json()\n\n# Przykład użycia\nif __name__ == \"__main__\":\n    logging.basicConfig(level=logging.DEBUG)\n    api_client = APIClient(\"https://api.example.com\")\n\n    try:\n        # GET request example\n        response = api_client.get(\"/data\")\n        print(response)\n\n        # POST request example\n        data = {\"key\": \"value\"}\n        response = api_client.post(\"/data\", json=data)\n        print(response)\n    except RequestException as e:\n        print(f\"Request failed: {e}\")\n```\n\nW powyższym kodzie:\n\n1. **Inicjalizacja**: Klasa `APIClient` inicjalizuje podstawową URL bazową oraz sesję HTTP za pomocą biblioteki `requests`. Logowanie jest skonfigurowane do debugowania.\n2. **Metoda _request**: Obsługuje wysyłanie żądań z opcjonalnym timeoutem i ponawianiem prób (maksymalnie 3 razy, z backoffem). Jeśli żądanie nie powiedzie się, program czeka krótszy czas między kolejnymi próbami.\n3. **Metody GET i POST**: Używają metody `_request` do wysłania odpowiednich żądań HTTP i logują każdy krok.\n4. **Przykład użycia**: W sekcji głównej programu pokazano, jak używać `APIClient` do wysyłania GET i POST żądań oraz obsługi błędów.\n\nTen kod powinien pomóc w zdiagnozowaniu błędów integracji, logując każde żądanie i odpowiedź oraz obsługując próby i timeouty.",
+  "model_used": "deepseek-coder-v2:16b",
+  "backend": "local",
+  "tokens_estimated": 338,
+  "duration_s": 23.48,
+  "rounds": 1,
+  "verifier_passed": true,
+  "escalation_reason": null,
+  "error": null,
+  "completed_at": "2026-06-04T22:31:22.056724",
+  "task_preview": "debuguj błąd integracji systemu z zewnętrznym API, pipeline wieloetapowy — napisz klasę APIClient z obsługą: timeout, re",
+  "level_score": 4,
+  "level_signals": [
+    "szeroki:system",
+    "multistep:wieloetapow,pipeline"
+  ]
+}

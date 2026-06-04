@@ -1,0 +1,20 @@
+{
+  "id": "demo_easy_suma",
+  "status": "done",
+  "level": "EASY",
+  "output": "Oczywiście! Poniżej znajduje się prosty przykład funkcji `suma_listy` oraz testu pytest, który sprawdza, czy funkcja zwraca poprawną sumę elementów listy:\n\n```python\ndef suma_listy(numbers: list) -> float:\n    return sum(numbers)\n\n# Test pytest\nimport pytest\n\ndef test_suma_listy():\n    assert suma_listy([1, 2, 3]) == 6.0\n\nif __name__ == \"__main__\":\n    pytest.main()\n```\n\nW tym kodzie:\n- Funkcja `suma_listy` przyjmuje listę liczb i zwraca jej sumę za pomocą wbudowanej funkcji `sum`.\n- Test pytest sprawdza, czy `suma_listy([1, 2, 3])` równa się `6.0`. Jeśli tak, test przechodzi; jeśli nie, zgłasza błąd.\n\nAby uruchomić testy, upewnij się, że masz zainstalowane pytest. Możesz to zrobić za pomocą pip:\n\n```sh\npip install pytest\n```\n\nNastępnie możesz uruchomić skrypt z poziomu konsoli:\n\n```sh\npython -m pytest test_suma_listy.py\n```",
+  "model_used": "deepseek-coder-v2:16b",
+  "backend": "local",
+  "tokens_estimated": 117,
+  "duration_s": 20.299,
+  "rounds": 1,
+  "verifier_passed": true,
+  "escalation_reason": null,
+  "error": null,
+  "completed_at": "2026-06-04T22:29:23.461100",
+  "task_preview": "Napisz prostą funkcję Python `suma_listy(numbers: list) -> float` która zwraca sumę elementów listy. Dodaj test pytest: ",
+  "level_score": 0,
+  "level_signals": [
+    "werif:test,pytest"
+  ]
+}

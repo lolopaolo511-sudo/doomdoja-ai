@@ -2,9 +2,14 @@
 """
 Manager Daemon — obserwuje inbox/, przetwarza zadania przez lokalnego agenta.
 
-Tryby:
+Tryby (pole mode w zadaniu):
   local  — wymusza model Ollama, bez routera
   auto   — HybridRouter decyduje local/cloud
+
+Polityka 3 poziomów (auto-wykrywana przez LevelClassifier):
+  EASY   → lokalny model, bez eskalacji, verifier opcjonalny
+  MEDIUM → lokalny NAJPIERW; verifier sprawdza; po N failach → cloud
+  HARD   → od razu needs_escalation w outbox (bez marnowania rund)
 
 Format pliku zadania (JSON lub YAML w inbox/):
   {
@@ -18,13 +23,16 @@ Format pliku zadania (JSON lub YAML w inbox/):
 Format wyniku w outbox/<id>.json:
   {
     "id": "task_001",
-    "status": "done",
+    "status": "done" | "needs_escalation",
+    "level": "EASY" | "MEDIUM" | "HARD",
     "output": "...",
     "model_used": "deepseek-coder-v2:16b",
-    "backend": "local",
+    "backend": "local" | "cloud",
     "tokens_estimated": 150,
     "duration_s": 3.2,
     "verifier_passed": true,
+    "rounds": 1,
+    "escalation_reason": null | "...",
     "error": null
   }
 
@@ -64,6 +72,11 @@ if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 
 POLL_INTERVAL_S = 2.0
+
+# Ile failów verifier przed eskalacją dla MEDIUM (override: pole medium_escalate_after w zadaniu)
+MEDIUM_ESCALATE_AFTER = 2
+# Co ile zadań uruchamiamy kalibrację (0 = wyłączona)
+CALIBRATION_EVERY_N = 20
 
 # ── LOGGING ───────────────────────────────────────────────────────────────────
 
@@ -122,88 +135,187 @@ def validate_task(data: dict) -> tuple[bool, str]:
     return True, ""
 
 
-# ── PRZETWARZANIE ZADANIA ─────────────────────────────────────────────────────
+# ── PRZETWARZANIE ZADANIA — 3-POZIOMOWA POLITYKA ────────────────────────────
 
 def process_task(data: dict) -> dict:
-    """Przetwarza jedno zadanie, zwraca słownik wyniku."""
-    task_id = data["id"]
+    """
+    Przetwarza jedno zadanie zgodnie z 3-poziomową polityką:
+      EASY   → lokalny model, bez eskalacji
+      MEDIUM → lokalny NAJPIERW; verifier; po N failach → cloud
+      HARD   → od razu needs_escalation (bez prób lokalnie)
+    """
+    task_id   = data["id"]
     task_text = data["task"]
-    mode = data.get("mode", "auto")
+    mode      = data.get("mode", "auto")
     max_tokens: Optional[int] = data.get("max_tokens")
-    priority = data.get("priority", 5)
+    priority  = data.get("priority", 5)
+    escalate_after = data.get("medium_escalate_after", MEDIUM_ESCALATE_AFTER)
 
-    logger.info(f"[{task_id}] START mode={mode} priority={priority} len={len(task_text)}")
+    # ── Klasyfikacja poziomu ──────────────────────────────────────────────────
+    from manager.level import classify_level
+    level_result = classify_level(task_text)
+    level = level_result.level
+
+    # Tryb "local" zawsze wymusza EASY (niezależnie od klasyfikacji)
+    if mode == "local":
+        level = "EASY"
+
+    logger.info(
+        f"[{task_id}] START level={level} mode={mode} "
+        f"priority={priority} score={level_result.score} "
+        f"signals={level_result.signals[:3]}"
+    )
+
     t0 = time.monotonic()
 
+    # ── HARD → od razu needs_escalation ──────────────────────────────────────
+    if level == "HARD":
+        duration = time.monotonic() - t0
+        reason = f"HARD: {level_result.reason} | sygnały: {', '.join(level_result.signals[:4])}"
+        logger.info(f"[{task_id}] HARD → needs_escalation  {reason}")
+        _record_feedback(task_id, task_text, "HARD", "none", "none",
+                         False, 0, duration, escalated=True)
+        return {
+            "id": task_id,
+            "status": "needs_escalation",
+            "level": "HARD",
+            "output": "",
+            "model_used": "none",
+            "backend": "none",
+            "tokens_estimated": 0,
+            "duration_s": round(duration, 3),
+            "rounds": 0,
+            "verifier_passed": False,
+            "escalation_reason": reason,
+            "error": None,
+            "completed_at": datetime.now().isoformat(),
+            "task_preview": task_text[:120],
+        }
+
+    # ── EASY / MEDIUM → próba lokalna ─────────────────────────────────────────
+    local_model = _get_local_model()
     backend_name = "local"
-    model_used = "deepseek-coder-v2:16b"
-    verifier_passed = False
-    output = ""
+    model_used   = local_model
+    output       = ""
     error_msg: Optional[str] = None
+    verifier_passed = False
+    rounds = 0
+    escalated = False
+    escalation_reason: Optional[str] = None
 
-    try:
-        if mode == "local":
-            # Wymuś lokalny backend
+    max_local_rounds = 1 if level == "EASY" else escalate_after
+
+    for round_num in range(1, max_local_rounds + 1):
+        rounds = round_num
+        try:
             from router.backends.local import LocalBackend
-            local_be = LocalBackend()
-            output = local_be.generate(task_text, max_tokens=max_tokens)
-            backend_name = "local"
-            model_used = _get_local_model()
+            output = LocalBackend().generate(task_text, max_tokens=max_tokens)
+            error_msg = None
+        except Exception as exc:
+            error_msg = f"{type(exc).__name__}: {exc}"
+            logger.error(f"[{task_id}] runda {round_num} BŁĄD: {error_msg}")
+            output = ""
 
-        elif mode == "auto":
-            # Router decyduje
+        verifier_passed = bool(output and output.strip() and not error_msg)
+        logger.info(
+            f"[{task_id}] runda={round_num}/{max_local_rounds} "
+            f"verifier={'✓' if verifier_passed else '✗'}"
+        )
+
+        if verifier_passed:
+            break  # sukces — nie potrzeba kolejnych rund
+
+    # ── MEDIUM: eskalacja po wyczerpaniu rund ─────────────────────────────────
+    if level == "MEDIUM" and not verifier_passed:
+        logger.info(f"[{task_id}] MEDIUM fail po {rounds} rundach → eskalacja cloud")
+        escalated = True
+        escalation_reason = f"local fail po {rounds} rundach verifier"
+
+        try:
             from router import HybridRouter, RouterContext
             router = HybridRouter()
             ctx = RouterContext(
                 step_title=task_text[:80],
-                force_local=False,
-                force_cloud=False,
+                verifier_fails=rounds,
+                force_cloud=True,
             )
             decision = router.choose_model(task_text, ctx)
+            model_used   = decision.model
             backend_name = decision.backend
-            model_used = decision.model
-            logger.info(f"[{task_id}] Router: {decision.summary()}")
+            logger.info(f"[{task_id}] Cloud router: {decision.summary()}")
 
-            if decision.backend == "local":
-                from router.backends.local import LocalBackend
-                local_be = LocalBackend()
-                output = local_be.generate(task_text, model=decision.model, max_tokens=max_tokens)
-            else:
-                # Eskalacja do cloud
+            if decision.backend == "cloud":
                 from router.backends.cloud import CloudBackend
-                cloud_be = CloudBackend()
-                output = cloud_be.generate(task_text, model=decision.model, max_tokens=max_tokens)
+                output = CloudBackend().generate(task_text, model=decision.model, max_tokens=max_tokens)
+                error_msg = None
+            else:
+                # cloud niedostępny → local-only, zostań przy ostatnim outputcie
+                logger.warning(f"[{task_id}] Cloud niedostępny, zostaję przy lokalnym wyniku")
+                backend_name = "local"
+                model_used   = local_model
+                escalated    = False
 
-        # Podstawowa weryfikacja — sprawdź czy odpowiedź nie jest pusta
-        verifier_passed = bool(output and output.strip())
-
-    except Exception as exc:
-        error_msg = f"{type(exc).__name__}: {exc}"
-        logger.error(f"[{task_id}] BŁĄD: {error_msg}")
+            verifier_passed = bool(output and output.strip())
+        except Exception as exc:
+            error_msg = f"cloud error: {type(exc).__name__}: {exc}"
+            logger.error(f"[{task_id}] Błąd eskalacji: {error_msg}")
 
     duration = time.monotonic() - t0
-    tokens_estimated = len(output.split()) if output else 0
+    _record_feedback(task_id, task_text, level, backend_name, model_used,
+                     verifier_passed, rounds, duration, escalated=escalated,
+                     error=error_msg)
 
+    status = "done" if (verifier_passed and not error_msg) else "failed"
     result = {
         "id": task_id,
-        "status": "done" if not error_msg else "failed",
+        "status": status,
+        "level": level,
         "output": output,
         "model_used": model_used,
         "backend": backend_name,
-        "tokens_estimated": tokens_estimated,
+        "tokens_estimated": len(output.split()) if output else 0,
         "duration_s": round(duration, 3),
+        "rounds": rounds,
         "verifier_passed": verifier_passed,
+        "escalation_reason": escalation_reason,
         "error": error_msg,
         "completed_at": datetime.now().isoformat(),
         "task_preview": task_text[:120],
+        "level_score": level_result.score,
+        "level_signals": level_result.signals,
     }
 
+    icon = "✅" if status == "done" else "❌"
     logger.info(
-        f"[{task_id}] {'DONE' if not error_msg else 'FAIL'} "
+        f"[{task_id}] {icon} {status.upper()} level={level} "
         f"backend={backend_name} model={model_used} "
-        f"tokens~{tokens_estimated} t={duration:.2f}s"
+        f"rounds={rounds} tokens~{result['tokens_estimated']} t={duration:.2f}s"
     )
     return result
+
+
+def _record_feedback(
+    task_id: str, task_text: str, level: str, backend: str, model: str,
+    verifier_passed: bool, rounds: int, duration: float,
+    escalated: bool = False, error: Optional[str] = None,
+) -> None:
+    """Zapisz wynik do memory2 (nieblokująco, ignoruj błędy)."""
+    try:
+        from manager.level_feedback import get_feedback
+        get_feedback().record(
+            task_id=task_id,
+            task_preview=task_text[:80],
+            level=level,
+            backend=backend,
+            model=model,
+            verifier_passed=verifier_passed,
+            rounds=rounds,
+            duration_s=duration,
+            escalated=escalated,
+            error=error,
+        )
+    except Exception as e:
+        logger.debug(f"[feedback] zapis pominięty: {e}")
 
 
 def _get_local_model() -> str:
@@ -222,13 +334,18 @@ def _get_local_model() -> str:
 class ManagerDaemon:
     def __init__(self):
         self._running = False
+        self._tasks_since_cal = 0
 
     def start(self):
         setup_logging()
+        from manager.level import get_classifier
+        clf = get_classifier()
         logger.info("=== Manager Daemon URUCHOMIONY ===")
         logger.info(f"  inbox:      {INBOX_DIR}")
         logger.info(f"  outbox:     {OUTBOX_DIR}")
         logger.info(f"  poll:       {POLL_INTERVAL_S}s")
+        logger.info(f"  level thresholds: MEDIUM≥{clf.medium_threshold} HARD≥{clf.hard_threshold}")
+        logger.info(f"  MEDIUM eskalacja po: {MEDIUM_ESCALATE_AFTER} rundach")
 
         self._write_pid()
         signal.signal(signal.SIGTERM, self._handle_signal)
@@ -278,17 +395,24 @@ class ManagerDaemon:
 
         result = process_task(data)
 
-        # Zapis do outbox/ lub failed/
+        # Zapis do outbox/ (done, needs_escalation) lub failed/
         task_id = data["id"]
-        if result["status"] == "done":
+        out_statuses = ("done", "needs_escalation")
+        if result["status"] in out_statuses:
             out_path = OUTBOX_DIR / f"{task_id}.json"
             out_path.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
-            logger.info(f"Wynik zapisany: {out_path}")
+            logger.info(f"Wynik zapisany: {out_path} [{result['status']}]")
         else:
             self._move_to_failed(proc_file, result.get("error") or "unknown error", result)
 
         # Usuń plik z processing/
         proc_file.unlink(missing_ok=True)
+
+        # Kalibracja co N zadań
+        self._tasks_since_cal += 1
+        if CALIBRATION_EVERY_N > 0 and self._tasks_since_cal >= CALIBRATION_EVERY_N:
+            self._tasks_since_cal = 0
+            self._run_calibration()
 
     def _move_to_failed(self, proc_file: Path, reason: str, result: Optional[dict] = None):
         fail_path = FAILED_DIR / proc_file.name
@@ -300,6 +424,17 @@ class ManagerDaemon:
             encoding="utf-8",
         )
         logger.warning(f"Zadanie przeniesione do failed: {fail_path.name} — {reason}")
+
+    def _run_calibration(self):
+        try:
+            from manager.level_calibration import run_calibration
+            report = run_calibration()
+            if report.changes:
+                logger.info(f"[calibration] Progi zmienione: {report.changes}")
+            else:
+                logger.debug("[calibration] Brak zmian progów")
+        except Exception as e:
+            logger.debug(f"[calibration] pominięta: {e}")
 
     def _handle_signal(self, signum, frame):
         logger.info(f"Otrzymano sygnał {signum}, zatrzymuję daemon...")
