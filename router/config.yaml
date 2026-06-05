@@ -15,12 +15,12 @@ thresholds:
 
 local:
   model: "deepseek-coder-v2:16b"
-  fast_model: "qwen2.5-coder:7b"
+  fast_model: "qwen2.5-coder:14b"
   url: "http://localhost:11434"
 
 cloud:
   provider: "anthropic"
-  model: "claude-opus-4-8"
+  model: "claude-sonnet-4-6"
   # Nazwa zmiennej środowiskowej z kluczem API (nigdy nie wpisuj klucza tutaj)
   api_key_env: "ANTHROPIC_API_KEY"
   timeout_s: 120
