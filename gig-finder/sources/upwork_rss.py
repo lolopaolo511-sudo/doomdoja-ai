@@ -42,6 +42,7 @@ import os
 import re
 
 import feedparser
+import httpx
 
 from . import Gig
 
@@ -61,7 +62,9 @@ def fetch(cfg: dict) -> list[Gig]:
         headers["Cookie"] = cookie
 
     try:
-        feed = feedparser.parse(rss_url, request_headers=headers)
+        r = httpx.get(rss_url, headers=headers, timeout=15, follow_redirects=True)
+        r.raise_for_status()
+        feed = feedparser.parse(r.text)
     except Exception as e:
         print(f"[upwork_rss] błąd parsowania RSS: {e}")
         return []

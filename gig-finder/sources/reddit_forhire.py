@@ -10,11 +10,13 @@ import re
 from datetime import datetime, timezone
 
 import feedparser
+import httpx
 
 from . import Gig
 
 _RSS_URL = "https://www.reddit.com/r/forhire/new/.rss"
 _HEADERS = {"User-Agent": "feedparser/6.0 (gig-finder)"}
+_TIMEOUT = 15
 
 
 def fetch(cfg: dict) -> list[Gig]:
@@ -22,7 +24,9 @@ def fetch(cfg: dict) -> list[Gig]:
     gigs: list[Gig] = []
 
     try:
-        feed = feedparser.parse(_RSS_URL, request_headers=_HEADERS)
+        r = httpx.get(_RSS_URL, headers=_HEADERS, timeout=_TIMEOUT, follow_redirects=True)
+        r.raise_for_status()
+        feed = feedparser.parse(r.text)
         entries = feed.entries
     except Exception as e:
         print(f"[reddit_forhire] błąd: {e}")
