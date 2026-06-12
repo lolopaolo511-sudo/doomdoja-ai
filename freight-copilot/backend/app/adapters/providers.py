@@ -15,20 +15,14 @@ class DistanceProvider(Protocol):
 
 
 class MockDistanceProvider:
+    """Geographic distance estimate (haversine × road-factor) over EU hubs."""
+
     name = "mock"
-    _TABLE = {
-        ("Warsaw", "Milan"): 1330,
-        ("Poznań", "Verona"): 1150,
-        ("Berlin", "Wrocław"): 350,
-        ("Turin", "Kraków"): 1300,
-        ("Łódź", "Munich"): 950,
-        ("Prague", "Bologna"): 870,
-        ("Katowice", "Rome"): 1500,
-        ("Hamburg", "Warsaw"): 750,
-    }
 
     def distance_km(self, origin: str, destination: str) -> float | None:
-        return float(self._TABLE.get((origin, destination), 0)) or None
+        from ..geo import estimate_distance_km
+
+        return estimate_distance_km(origin, destination)
 
 
 class ManualDistanceProvider:

@@ -123,17 +123,13 @@ class PricingAgent(BaseAgent):
 
     @staticmethod
     def _mock_distance(offer: dict) -> float:
-        """Crude fallback distance when no provider/manual value is present."""
-        # Rough lane distances for the demo lanes (km).
-        table = {
-            ("Warsaw", "Milan"): 1330,
-            ("Poznań", "Verona"): 1150,
-            ("Berlin", "Wrocław"): 350,
-            ("Turin", "Kraków"): 1300,
-            ("Łódź", "Munich"): 950,
-            ("Prague", "Bologna"): 870,
-            ("Katowice", "Rome"): 1500,
-            ("Hamburg", "Warsaw"): 750,
-        }
-        key = (offer.get("origin_city"), offer.get("dest_city"))
-        return float(table.get(key, 800))
+        """Fallback distance when no provider/manual value is present.
+
+        Uses a geographic (haversine × road-factor) estimate over a table of
+        European freight hubs, so any known lane gets a sensible distance; falls
+        back to a conservative 800 km only when a city is unrecognised.
+        """
+        from ..geo import estimate_distance_km
+
+        est = estimate_distance_km(offer.get("origin_city"), offer.get("dest_city"))
+        return float(est) if est else 800.0
