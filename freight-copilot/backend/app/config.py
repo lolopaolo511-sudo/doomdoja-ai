@@ -55,6 +55,7 @@ class Settings:
         self.local_llm_base_url: str = os.environ.get(
             "LOCAL_LLM_BASE_URL", "http://127.0.0.1:11434/v1"
         )
+        self.local_llm_model: str = os.environ.get("LOCAL_LLM_MODEL", "llama3.1")
         # Model ids used only if the (placeholder) Anthropic adapter is enabled.
         self.anthropic_primary_model: str = os.environ.get(
             "ANTHROPIC_PRIMARY_MODEL", "claude-opus-4-8"

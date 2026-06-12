@@ -38,7 +38,10 @@ Pragmatic modular monolith. Backend: FastAPI + SQLAlchemy 2.0 + Pydantic v2,
 SQLite by default (Postgres optional via `DATABASE_URL`). UI: server-rendered
 Jinja2 + Tailwind (MVP); Next.js is the production target. The agent layer is
 deterministic rule-based code with a pluggable, optional `LLMProvider`
-(`deterministic` default / `mock` / `local` / `anthropic` placeholders).
+(`deterministic` default / `mock` for tests / `local` OpenAI-compatible /
+`anthropic`). The Anthropic and local providers are implemented (enrichment of
+drafts + intake parsing only) and every LLM call falls back to the rule-based
+path on any error — scores, risk, and pricing are always deterministic.
 
 ```
 backend/app/{models,schemas?,services,seed}.py
