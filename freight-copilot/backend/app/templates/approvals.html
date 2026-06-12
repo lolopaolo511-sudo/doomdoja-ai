@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block heading %}Approval Inbox{% endblock %}
+{% block content %}
+{% if demo %}
+<div class="bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded p-3 mb-4">
+  DEMO MODE: approving an action is <b>simulated</b> — no real external write is performed.
+</div>
+{% endif %}
+<div class="space-y-4">
+  {% for a in approvals %}
+  <div class="bg-white rounded-lg shadow p-5">
+    <div class="flex justify-between">
+      <div class="font-semibold">{{ a.action }} → {{ a.external_system }}</div>
+      <span class="px-2 py-0.5 rounded text-xs
+        {{ 'bg-slate-200 text-slate-600' if a.state=='pending'
+           else 'bg-emerald-100 text-emerald-700' if a.state in ['approved','simulated']
+           else 'bg-red-100 text-red-700' }}">{{ a.state }}</span>
+    </div>
+    <div class="text-sm text-slate-600 mt-1">Source: {{ a.source_summary }}</div>
+    <div class="text-sm text-slate-600">Reasoning: {{ a.reasoning_summary }}</div>
+    <div class="text-xs mt-2"><b>Payload:</b> <code>{{ a.payload }}</code></div>
+    {% if a.risks %}<div class="text-xs text-red-600 mt-1">Risks: {{ a.risks|join(', ') }}</div>{% endif %}
+    {% if a.result_note %}<div class="text-xs text-slate-500 mt-1">{{ a.result_note }}</div>{% endif %}
+    {% if a.state == 'pending' %}
+    <div class="flex gap-2 mt-3">
+      <form method="post" action="/approvals/{{ a.id }}"><input type="hidden" name="decision" value="approved">
+        <button class="bg-emerald-600 text-white px-3 py-1.5 rounded text-sm">Approve (simulate)</button></form>
+      <form method="post" action="/approvals/{{ a.id }}"><input type="hidden" name="decision" value="rejected">
+        <button class="bg-red-600 text-white px-3 py-1.5 rounded text-sm">Reject</button></form>
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

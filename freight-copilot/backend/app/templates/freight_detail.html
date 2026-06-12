@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block heading %}Freight Detail{% endblock %}
+{% block content %}
+{% set scout = analysis.scout.output %}
+{% set pricing = analysis.pricing.output %}
+<div class="grid md:grid-cols-3 gap-6">
+  <div class="md:col-span-2 space-y-6">
+    <div class="bg-white rounded-lg shadow p-5">
+      <h2 class="font-semibold mb-2">Original source (untrusted)</h2>
+      <pre class="bg-slate-50 p-3 rounded text-sm whitespace-pre-wrap">{{ offer.raw_text }}</pre>
+      <div class="grid grid-cols-2 gap-2 mt-3 text-sm">
+        <div><span class="text-slate-500">Route:</span> {{ offer.origin_city }} ({{ offer.origin_country }})
+          → {{ offer.dest_city }} ({{ offer.dest_country }})</div>
+        <div><span class="text-slate-500">Vehicle:</span> {{ offer.vehicle_type or '—' }}</div>
+        <div><span class="text-slate-500">Weight:</span> {{ offer.weight_kg or '—' }} kg</div>
+        <div><span class="text-slate-500">ADR:</span> {{ 'yes' if offer.adr_required else 'no' }}</div>
+        <div><span class="text-slate-500">Rate:</span> {{ offer.customer_rate or '—' }} {{ offer.currency }}</div>
+        <div><span class="text-slate-500">Language:</span> {{ offer.language }}</div>
+      </div>
+      {% if offer.missing_fields %}
+      <div class="mt-3 text-sm text-red-600">Missing: {{ offer.missing_fields|join(', ') }}</div>
+      {% endif %}
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-5">
+      <h2 class="font-semibold mb-2">Carrier shortlist <span class="text-xs text-slate-400">(advisory; verify before contact)</span></h2>
+      <table class="w-full text-sm">
+        <thead class="text-left text-xs uppercase text-slate-500">
+          <tr><th class="py-1">Carrier</th><th>Score</th><th>Risk</th><th>Notes</th></tr></thead>
+        <tbody class="divide-y">
+        {% for c in matches.output.shortlist %}
+          <tr>
+            <td class="py-2">{{ c.legal_name }}</td>
+            <td class="font-mono">{{ c.score }}</td>
+            <td><span class="px-2 py-0.5 rounded text-xs
+              {{ 'bg-red-100 text-red-700' if c.risk_assessment.risk_level in ['high','blocked']
+                 else 'bg-emerald-100 text-emerald-700' if c.risk_assessment.risk_level=='low'
+                 else 'bg-amber-100 text-amber-700' }}">{{ c.risk_assessment.risk_level }}</span></td>
+            <td class="text-xs text-slate-600">
+              {{ c.explanation|join(', ') }}
+              {% if c.disqualifiers %}<span class="text-red-600">· {{ c.disqualifiers|join(', ') }}</span>{% endif %}
+              {% if c.risk_assessment.findings %}<span class="text-red-600">· {{ c.risk_assessment.findings|join(', ') }}</span>{% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="space-y-6">
+    <div class="bg-white rounded-lg shadow p-5">
+      <h2 class="font-semibold mb-2">Opportunity score</h2>
+      <div class="text-4xl font-bold">{{ scout.score }}<span class="text-base text-slate-400">/100</span></div>
+      <div class="text-sm text-indigo-600 font-medium">{{ scout.priority }}</div>
+      <ul class="text-xs text-slate-600 mt-2 space-y-0.5">
+        {% for k, v in scout.breakdown.items() %}<li>{{ k }}: {{ v }}</li>{% endfor %}
+      </ul>
+      <div class="text-xs text-slate-400 mt-2">Rule-based heuristic — not market intelligence.</div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-5">
+      <h2 class="font-semibold mb-2">Pricing &amp; margin</h2>
+      <div class="text-sm space-y-1">
+        <div>Carrier cost: <b>{{ pricing.carrier_cost_low }}–{{ pricing.carrier_cost_high }} {{ pricing.currency }}</b></div>
+        <div>Sell: <b>{{ pricing.sell_low }}–{{ pricing.sell_high }} {{ pricing.currency }}</b></div>
+        <div>Margin: <b>{{ pricing.margin_low }}–{{ pricing.margin_high }} {{ pricing.currency }}</b> ({{ pricing.margin_pct }}%)</div>
+      </div>
+      {% if pricing.warnings %}<div class="text-xs text-red-600 mt-2">⚠ {{ pricing.warnings|join('; ') }}</div>{% endif %}
+      <div class="text-xs text-slate-500 mt-2">Assumptions: {{ pricing.assumptions|join('; ') }}</div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-5">
+      <h2 class="font-semibold mb-2">Suggested questions</h2>
+      <ul class="text-sm list-disc list-inside text-slate-600">
+        {% for q in scout.suggested_questions %}<li>{{ q }}</li>{% else %}<li>None</li>{% endfor %}
+      </ul>
+      <div class="text-sm mt-3"><b>Next action:</b> {{ scout.recommended_next_action }}</div>
+    </div>
+  </div>
+</div>
+<a href="/opportunities" class="inline-block mt-6 text-sm text-indigo-600">← Back to inbox</a>
+{% endblock %}
