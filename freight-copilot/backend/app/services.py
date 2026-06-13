@@ -129,6 +129,111 @@ def intake_offer(session: Session, text: str, source: str = "manual") -> m.Freig
     return offer
 
 
+def import_offers(session: Session, rows: list[dict], source: str = "import") -> dict:
+    """Bulk-import freight offers from parsed CSV/XLSX rows.
+
+    Each row is either a free-text column (parsed by the Intake agent, with the
+    safety scan) or structured columns. Duplicates are skipped, every row is
+    scored, and a per-row summary is returned. Nothing is sent externally.
+    """
+    from .importer import normalize_row
+
+    intake = IntakeAgent()
+    summary = {"imported": 0, "duplicates": 0, "errors": [], "offer_ids": []}
+
+    # Snapshot existing offers for naive duplicate detection.
+    existing = [
+        {
+            "id": o.id,
+            "origin_city": o.origin_city,
+            "dest_city": o.dest_city,
+            "pickup_date_raw": None,
+            "weight_kg": o.weight_kg,
+        }
+        for o in session.scalars(select(m.FreightOffer)).all()
+    ]
+
+    for i, raw in enumerate(rows, start=1):
+        try:
+            canon = normalize_row(raw)
+            text = canon.get("raw_text")
+            if text:
+                res = intake.parse(text, source_platform=source)
+                data = res.output["data"]
+                # Explicit structured columns override parsed values.
+                for k, v in canon.items():
+                    if k != "raw_text" and v not in (None, ""):
+                        data[k] = v
+                missing = [f for f in res.missing_fields]
+                confidence = res.confidence
+                triage = res.output["triage_state"]
+            else:
+                data = dict(canon)
+                from .agents.intake import CRITICAL_FIELDS
+
+                missing = [f for f in CRITICAL_FIELDS if f != "pickup_date" and not data.get(f)]
+                confidence = round(
+                    0.4 + 0.5 * (len(CRITICAL_FIELDS) - len(missing)) / len(CRITICAL_FIELDS), 2
+                )
+                triage = "needs_review" if missing else "ready_for_scoring"
+
+            if not (data.get("origin_city") and data.get("dest_city")):
+                summary["errors"].append({"row": i, "error": "missing origin/destination"})
+                continue
+            if intake.is_duplicate(data, existing):
+                summary["duplicates"] += 1
+                continue
+
+            offer = m.FreightOffer(
+                source_platform=source,
+                source_reference=data.get("source_reference"),
+                raw_text=text,
+                language=data.get("language", "en"),
+                origin_city=data.get("origin_city"),
+                origin_country=data.get("origin_country"),
+                dest_city=data.get("dest_city"),
+                dest_country=data.get("dest_country"),
+                weight_kg=data.get("weight_kg"),
+                vehicle_type=data.get("vehicle_type"),
+                adr_required=bool(data.get("adr_required", False)),
+                currency=data.get("currency", "EUR"),
+                customer_rate=data.get("customer_rate"),
+                missing_fields=missing,
+                intake_confidence=confidence,
+                triage_state=triage,
+            )
+            session.add(offer)
+            session.flush()
+            analyze_offer(session, offer)
+            existing.append(
+                {
+                    "id": offer.id,
+                    "origin_city": offer.origin_city,
+                    "dest_city": offer.dest_city,
+                    "pickup_date_raw": None,
+                    "weight_kg": offer.weight_kg,
+                }
+            )
+            summary["imported"] += 1
+            summary["offer_ids"].append(offer.id)
+        except Exception as exc:  # one bad row must not abort the batch
+            summary["errors"].append({"row": i, "error": str(exc)})
+
+    audit.record(
+        session,
+        action="import_offers",
+        actor="forwarder",
+        detail={
+            "imported": summary["imported"],
+            "duplicates": summary["duplicates"],
+            "errors": len(summary["errors"]),
+            "source": source,
+        },
+    )
+    session.commit()
+    return summary
+
+
 def analyze_offer(session: Session, offer: m.FreightOffer) -> dict:
     """Run pricing + scoring and persist score/priority + a RateEstimate."""
     od = _offer_dict(offer)

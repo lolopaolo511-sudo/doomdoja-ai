@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
@@ -19,6 +19,7 @@ from .. import models as m
 from .. import services
 from ..config import get_settings
 from ..db import get_session
+from ..importer import ImportError_, parse_file
 
 router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent / "templates"))
@@ -63,13 +64,25 @@ def dashboard(request: Request, session: Session = Depends(get_session)):
 
 
 @router.get("/opportunities", response_class=HTMLResponse)
-def opportunities(request: Request, session: Session = Depends(get_session)):
+def opportunities(
+    request: Request,
+    imported: int | None = None,
+    dupes: int | None = None,
+    errors: int | None = None,
+    import_: str | None = None,
+    session: Session = Depends(get_session),
+):
     offers = session.scalars(
         select(m.FreightOffer)
         .where(m.FreightOffer.is_deleted == False)  # noqa: E712
         .order_by(m.FreightOffer.score.desc().nullslast())
     ).all()
-    return render(request, "opportunities.html", offers=offers)
+    import_result = None
+    if request.query_params.get("import") == "error":
+        import_result = {"error": True}
+    elif imported is not None:
+        import_result = {"imported": imported, "dupes": dupes or 0, "errors": errors or 0}
+    return render(request, "opportunities.html", offers=offers, import_result=import_result)
 
 
 @router.post("/opportunities/intake")
@@ -78,6 +91,26 @@ def intake_form(text: str = Form(...), session: Session = Depends(get_session)):
         offer = services.intake_offer(session, text.strip(), source="manual")
         return RedirectResponse(f"/opportunities/{offer.id}", status_code=303)
     return RedirectResponse("/opportunities", status_code=303)
+
+
+@router.post("/opportunities/import")
+def opportunities_import(file: UploadFile = File(...), session: Session = Depends(get_session)):
+    settings = get_settings()
+    content = file.file.read(settings.max_upload_bytes + 1)
+    name = file.filename or ""
+    ext = ("." + name.rsplit(".", 1)[-1].lower()) if "." in name else ""
+    if len(content) > settings.max_upload_bytes or ext not in settings.allowed_upload_ext:
+        return RedirectResponse("/opportunities?import=error", status_code=303)
+    try:
+        rows = parse_file(name, content)
+        summary = services.import_offers(session, rows, source="import")
+    except ImportError_:
+        return RedirectResponse("/opportunities?import=error", status_code=303)
+    return RedirectResponse(
+        f"/opportunities?imported={summary['imported']}&dupes={summary['duplicates']}"
+        f"&errors={len(summary['errors'])}",
+        status_code=303,
+    )
 
 
 @router.get("/opportunities/{offer_id}", response_class=HTMLResponse)

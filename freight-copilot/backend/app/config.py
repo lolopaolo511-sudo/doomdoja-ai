@@ -56,6 +56,14 @@ class Settings:
             "LOCAL_LLM_BASE_URL", "http://127.0.0.1:11434/v1"
         )
         self.local_llm_model: str = os.environ.get("LOCAL_LLM_MODEL", "llama3.1")
+
+        # --- Routing / toll providers ---
+        # distance_provider: "mock" (offline geo estimate, default) | "osrm"
+        #   (real driving distance via an OSRM server) | "manual".
+        self.distance_provider: str = os.environ.get("DISTANCE_PROVIDER", "mock")
+        self.osrm_base_url: str = os.environ.get("OSRM_BASE_URL", "https://router.project-osrm.org")
+        # toll_provider: "country_rate" (per-country EUR/km estimate, default) | "none".
+        self.toll_provider: str = os.environ.get("TOLL_PROVIDER", "country_rate")
         # Model ids used only if the (placeholder) Anthropic adapter is enabled.
         self.anthropic_primary_model: str = os.environ.get(
             "ANTHROPIC_PRIMARY_MODEL", "claude-opus-4-8"

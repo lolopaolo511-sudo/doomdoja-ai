@@ -5,6 +5,7 @@ pydantic>=2.6
 pydantic-settings>=2.1
 jinja2>=3.1
 python-multipart>=0.0.9
+openpyxl>=3.1
 # --- optional LLM enrichment (Anthropic API; local OpenAI-compatible uses httpx) ---
 anthropic>=0.40
 # --- dev / test ---

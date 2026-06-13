@@ -28,9 +28,16 @@ DEFAULT_RULES = {
 class PricingAgent(BaseAgent):
     name = "pricing"
 
-    def __init__(self, provider=None, rules: dict | None = None) -> None:
+    def __init__(
+        self, provider=None, rules: dict | None = None, distance_provider=None, toll_provider=None
+    ) -> None:
         super().__init__(provider)
         self.rules = {**DEFAULT_RULES, **(rules or {})}
+        # Injected providers default to the configured ones (offline by default).
+        from ..adapters.providers import get_distance_provider, get_toll_provider
+
+        self.distance_provider = distance_provider or get_distance_provider()
+        self.toll_provider = toll_provider or get_toll_provider()
 
     def estimate(self, offer: dict) -> AgentResult:
         assumptions: list[str] = []
@@ -39,10 +46,13 @@ class PricingAgent(BaseAgent):
         distance = offer.get("distance_km")
         if not distance:
             missing.append("distance_km")
-            distance = self._mock_distance(offer)
+            distance = (
+                self.distance_provider.distance_km(offer.get("origin_city"), offer.get("dest_city"))
+                or 800.0
+            )
             assumptions.append(
-                f"distance assumed {distance:.0f} km (mock provider; "
-                "replace with authorised distance provider)"
+                f"distance ≈ {distance:.0f} km ({self.distance_provider.name} provider; "
+                "set DISTANCE_PROVIDER=osrm for real routing)"
             )
 
         base = self.rules["base_eur_per_km"]
@@ -60,7 +70,9 @@ class PricingAgent(BaseAgent):
 
         loaded_km = distance
         deadhead_km = distance * self.rules["deadhead_pct"]
-        toll = (loaded_km) * self.rules["toll_per_km"]
+        toll = self.toll_provider.toll_eur(
+            loaded_km, offer.get("origin_country"), offer.get("dest_country")
+        )
 
         # Carrier buy-price midpoint and a +/-12% range.
         buy_mid = base * mult * (loaded_km + deadhead_km) + toll
@@ -120,16 +132,3 @@ class PricingAgent(BaseAgent):
             missing_fields=missing,
             factors=assumptions,
         )
-
-    @staticmethod
-    def _mock_distance(offer: dict) -> float:
-        """Fallback distance when no provider/manual value is present.
-
-        Uses a geographic (haversine × road-factor) estimate over a table of
-        European freight hubs, so any known lane gets a sensible distance; falls
-        back to a conservative 800 km only when a city is unrecognised.
-        """
-        from ..geo import estimate_distance_km
-
-        est = estimate_distance_km(offer.get("origin_city"), offer.get("dest_city"))
-        return float(est) if est else 800.0

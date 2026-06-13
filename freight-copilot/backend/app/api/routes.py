@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -11,6 +11,21 @@ from .. import models as m
 from .. import services
 from ..config import get_settings
 from ..db import get_session
+from ..importer import ImportError_, parse_file
+
+
+def _read_upload(file: UploadFile) -> bytes:
+    """Read an upload enforcing size + extension limits. Raises HTTPException."""
+    settings = get_settings()
+    content = file.file.read(settings.max_upload_bytes + 1)
+    if len(content) > settings.max_upload_bytes:
+        raise HTTPException(413, "file too large")
+    name = file.filename or ""
+    ext = ("." + name.rsplit(".", 1)[-1].lower()) if "." in name else ""
+    if ext not in settings.allowed_upload_ext:
+        raise HTTPException(400, f"unsupported file type '{ext}'")
+    return content
+
 
 router = APIRouter(prefix="/api", tags=["api"])
 
@@ -47,6 +62,17 @@ def intake(payload: IntakeIn, session: Session = Depends(get_session)) -> dict:
         "missing_fields": offer.missing_fields,
         "triage_state": offer.triage_state,
     }
+
+
+@router.post("/import")
+def import_offers(file: UploadFile = File(...), session: Session = Depends(get_session)) -> dict:
+    """Bulk-import freight offers from a CSV or XLSX file."""
+    content = _read_upload(file)
+    try:
+        rows = parse_file(file.filename, content)
+    except ImportError_ as exc:
+        raise HTTPException(400, str(exc)) from exc
+    return services.import_offers(session, rows, source="import")
 
 
 @router.get("/offers")
