@@ -1,0 +1,20 @@
+{
+  "name": "aetherfall",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Aetherfall — a small living fantasy world you can explore, in the browser.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "verify": "esbuild scripts/verify.ts --bundle --platform=node --format=esm --outfile=scripts/.verify.mjs && node scripts/.verify.mjs"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.4",
+    "typescript": "^5.4.5",
+    "vite": "^5.2.11"
+  }
+}

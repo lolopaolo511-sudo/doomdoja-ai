@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body {
+    margin: 0;
+    height: 100%;
+    background: #07080f;
+    color: #e6e8f2;
+    font-family: "Spectral", Georgia, serif;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  #app {
+    position: fixed;
+    inset: 0;
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+    cursor: crosshair;
+    background: #0d0f1a;
+  }
+}
+
+@layer components {
+  .panel {
+    @apply bg-aether-panel/95 border border-aether-edge rounded-2xl shadow-2xl backdrop-blur;
+  }
+  .btn {
+    @apply px-4 py-2 rounded-lg border border-aether-edge bg-aether-panel2 text-aether-text
+      font-display tracking-wide transition hover:bg-aether-edge hover:border-aether-gold
+      active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply px-4 py-2 rounded-lg font-display tracking-wide transition active:scale-95
+      bg-aether-gold text-aether-ink border border-aether-gold hover:brightness-110;
+  }
+  .chip {
+    @apply text-xs px-2 py-0.5 rounded-full border border-aether-edge bg-aether-panel2 text-aether-muted;
+  }
+  .title-font {
+    font-family: "Cinzel", Georgia, serif;
+  }
+}
+
+/* Thin custom scrollbar for panels */
+.scroll-thin::-webkit-scrollbar {
+  width: 8px;
+}
+.scroll-thin::-webkit-scrollbar-thumb {
+  background: #3a3f63;
+  border-radius: 8px;
+}
+.scroll-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.vignette {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 0 0 180px 40px rgba(0, 0, 0, 0.55);
+}
