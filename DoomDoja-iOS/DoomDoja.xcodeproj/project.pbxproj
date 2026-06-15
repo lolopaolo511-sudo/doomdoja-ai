@@ -17,6 +17,8 @@
 		AA000008 /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100008 /* ChatView.swift */; };
 		AA000009 /* MessageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100009 /* MessageView.swift */; };
 		AA000010 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100010 /* SettingsView.swift */; };
+		AA000011 /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100011 /* DesignSystem.swift */; };
+		AA000012 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100012 /* OnboardingView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -30,6 +32,8 @@
 		AA100008 /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
 		AA100009 /* MessageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageView.swift; sourceTree = "<group>"; };
 		AA100010 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		AA100011 /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
+		AA100012 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		AAPROD001 /* DoomDoja.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DoomDoja.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -87,6 +91,8 @@
 				AA100008 /* ChatView.swift */,
 				AA100009 /* MessageView.swift */,
 				AA100010 /* SettingsView.swift */,
+				AA100011 /* DesignSystem.swift */,
+				AA100012 /* OnboardingView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -159,6 +165,8 @@
 				AA000008 /* ChatView.swift in Sources */,
 				AA000009 /* MessageView.swift in Sources */,
 				AA000010 /* SettingsView.swift in Sources */,
+				AA000011 /* DesignSystem.swift in Sources */,
+				AA000012 /* OnboardingView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

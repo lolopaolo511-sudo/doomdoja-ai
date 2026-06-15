@@ -139,8 +139,6 @@ final class ChatStore {
             baseURL: url,
             apiKey: settings.apiKey.isEmpty ? nil : settings.apiKey
         )
-        connectionStatus = result == nil ? .connected : .disconnected
-        // Use pattern matching instead
         switch result {
         case .success: connectionStatus = .connected
         case .failure: connectionStatus = .disconnected

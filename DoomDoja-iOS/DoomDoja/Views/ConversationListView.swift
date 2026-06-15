@@ -2,17 +2,16 @@ import SwiftUI
 
 struct ConversationListView: View {
     @Environment(ChatStore.self) private var store
-    @Environment(AppSettings.self) private var settings
     @State private var searchText = ""
     @State private var showSettings = false
     @State private var chatToRename: Chat?
     @State private var renameTitle = ""
 
-    var filtered: [Chat] {
+    private var filteredChats: [Chat] {
         guard !searchText.isEmpty else { return store.chats }
         return store.chats.filter {
-            $0.title.localizedCaseInsensitiveContains(searchText) ||
-            $0.lastMessagePreview.localizedCaseInsensitiveContains(searchText)
+            $0.title.localizedStandardContains(searchText)
+                || $0.lastMessagePreview.localizedStandardContains(searchText)
         }
     }
 
@@ -21,103 +20,114 @@ struct ConversationListView: View {
             Group {
                 if store.chats.isEmpty {
                     emptyState
+                } else if filteredChats.isEmpty {
+                    ContentUnavailableView.search(text: searchText)
                 } else {
-                    List(selection: Binding(
-                        get: { store.activeChat },
-                        set: { if let c = $0 { store.selectChat(c) } }
-                    )) {
-                        ForEach(filtered) { chat in
+                    List(selection: activeChatBinding) {
+                        ForEach(filteredChats) { chat in
                             ChatRowView(chat: chat)
                                 .tag(chat)
                                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                     Button(role: .destructive) {
-                                        store.deleteChat(chat)
+                                        withAnimation(.snappy) { store.deleteChat(chat) }
                                     } label: {
                                         Label("Delete", systemImage: "trash")
                                     }
-                                }
-                                .swipeActions(edge: .leading) {
                                     Button {
-                                        chatToRename = chat
-                                        renameTitle = chat.title
+                                        beginRename(chat)
                                     } label: {
                                         Label("Rename", systemImage: "pencil")
                                     }
-                                    .tint(.orange)
+                                    .tint(DoomTheme.accent)
+                                }
+                                .contextMenu {
+                                    Button("Rename", systemImage: "pencil") { beginRename(chat) }
+                                    Button("Delete", systemImage: "trash", role: .destructive) {
+                                        withAnimation(.snappy) { store.deleteChat(chat) }
+                                    }
                                 }
                         }
                     }
+                    .listStyle(.plain)
+                    .refreshable { store.loadChats() }
                     .searchable(text: $searchText, prompt: "Search conversations")
                 }
             }
             .navigationTitle("DoomDoja")
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
+                ToolbarItem(placement: .topBarLeading) {
                     Button { showSettings = true } label: {
-                        Image(systemName: "gear")
+                        Label("Settings", systemImage: "gearshape")
                     }
                 }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        let chat = store.createChat()
-                        store.selectChat(chat)
-                    } label: {
-                        Image(systemName: "square.and.pencil")
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(action: createChat) {
+                        Label("New conversation", systemImage: "square.and.pencil")
                     }
                 }
             }
-            .sheet(isPresented: $showSettings) {
-                SettingsView()
-            }
-            .alert("Rename Chat", isPresented: Binding(
-                get: { chatToRename != nil },
-                set: { if !$0 { chatToRename = nil } }
-            )) {
-                TextField("Title", text: $renameTitle)
-                Button("Rename") {
-                    if let chat = chatToRename, !renameTitle.isEmpty {
-                        store.renameChat(chat, title: renameTitle)
-                    }
-                    chatToRename = nil
-                }
+            .sheet(isPresented: $showSettings) { SettingsView() }
+            .alert("Rename conversation", isPresented: renamePresented) {
+                TextField("Conversation title", text: $renameTitle)
                 Button("Cancel", role: .cancel) { chatToRename = nil }
+                Button("Rename") {
+                    guard let chatToRename else { return }
+                    let title = renameTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !title.isEmpty { store.renameChat(chatToRename, title: title) }
+                    self.chatToRename = nil
+                }
             }
         } detail: {
             if let chat = store.activeChat {
                 ChatView(chat: chat)
             } else {
-                placeholderDetail
+                ContentUnavailableView {
+                    Label("Select a conversation", systemImage: "bubble.left.and.bubble.right")
+                } description: {
+                    Text("Choose an existing chat or start a new one.")
+                } actions: {
+                    Button("New conversation", action: createChat)
+                        .buttonStyle(.borderedProminent)
+                        .tint(DoomTheme.accent)
+                }
             }
         }
+        .tint(DoomTheme.accent)
+    }
+
+    private var activeChatBinding: Binding<Chat?> {
+        Binding(
+            get: { store.activeChat },
+            set: { if let chat = $0 { store.selectChat(chat) } }
+        )
+    }
+
+    private var renamePresented: Binding<Bool> {
+        Binding(get: { chatToRename != nil }, set: { if !$0 { chatToRename = nil } })
     }
 
     private var emptyState: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "bubble.left.and.bubble.right")
-                .font(.system(size: 56))
-                .foregroundStyle(.secondary)
-            Text("No conversations yet")
-                .font(.title3)
-                .foregroundStyle(.secondary)
-            Button("Start a new chat") {
-                let chat = store.createChat()
-                store.selectChat(chat)
-            }
-            .buttonStyle(.borderedProminent)
+        ContentUnavailableView {
+            Label("Start a conversation", systemImage: "sparkles")
+        } description: {
+            Text("Your private conversations with DoomDoja will appear here.")
+        } actions: {
+            Button("New conversation", action: createChat)
+                .buttonStyle(.borderedProminent)
+                .tint(DoomTheme.accent)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private var placeholderDetail: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "bubble.left.and.bubble.right.fill")
-                .font(.system(size: 60))
-                .foregroundStyle(.secondary)
-            Text("Select a conversation")
-                .font(.title2)
-                .foregroundStyle(.secondary)
+    private func createChat() {
+        withAnimation(.snappy) {
+            let chat = store.createChat()
+            store.selectChat(chat)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func beginRename(_ chat: Chat) {
+        chatToRename = chat
+        renameTitle = chat.title
     }
 }
 
@@ -125,15 +135,32 @@ private struct ChatRowView: View {
     let chat: Chat
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(chat.title)
-                .font(.headline)
-                .lineLimit(1)
-            Text(chat.lastMessagePreview)
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "bubble.left.fill")
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .lineLimit(2)
+                .foregroundStyle(DoomTheme.accent)
+                .frame(width: 34, height: 34)
+                .background(DoomTheme.accent.opacity(0.11), in: Circle())
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 5) {
+                HStack {
+                    Text(chat.title)
+                        .font(.headline)
+                        .lineLimit(1)
+                    Spacer()
+                    Text(chat.updatedAt, format: .relative(presentation: .named))
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+                Text(chat.lastMessagePreview)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 8)
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
     }
 }
