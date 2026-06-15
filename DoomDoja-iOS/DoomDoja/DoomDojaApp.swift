@@ -26,6 +26,7 @@ struct DoomDojaApp: App {
 private struct RootView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(AppSettings.self) private var settings
+    @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding = false
 
     @State private var store: ChatStore?
 
@@ -34,6 +35,12 @@ private struct RootView: View {
             if let store {
                 ConversationListView()
                     .environment(store)
+                    .fullScreenCover(isPresented: Binding(
+                        get: { !hasSeenOnboarding },
+                        set: { if !$0 { hasSeenOnboarding = true } }
+                    )) {
+                        OnboardingView()
+                    }
             } else {
                 ProgressView()
                     .onAppear { store = ChatStore(modelContext: modelContext) }

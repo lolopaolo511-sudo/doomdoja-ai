@@ -12,6 +12,8 @@ final class ChatStore {
     var isStreaming: Bool = false
     var errorMessage: String?
     var connectionStatus: ConnectionStatus = .unknown
+    /// Incremented on every streamed token so ChatView can scroll continuously.
+    var streamingTokenCount: Int = 0
 
     enum ConnectionStatus {
         case unknown, connected, disconnected
@@ -112,6 +114,7 @@ final class ChatStore {
 
             for try await token in stream {
                 assistantMsg.content += token
+                streamingTokenCount += 1
             }
 
             connectionStatus = .connected

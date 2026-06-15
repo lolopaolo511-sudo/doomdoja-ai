@@ -11,123 +11,179 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section {
-                    @Bindable var s = settings
-                    LabeledContent("Server URL") {
-                        TextField("http://192.168.1.x:11434", text: $s.baseURLString)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                            .keyboardType(.URL)
-                            .multilineTextAlignment(.trailing)
-                    }
-                    LabeledContent("API Key") {
-                        SecureField("Optional", text: $s.apiKey)
-                            .multilineTextAlignment(.trailing)
-                    }
-                    LabeledContent("Model name") {
-                        TextField("doomdoja", text: $s.modelName)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                            .multilineTextAlignment(.trailing)
-                    }
-                } header: {
-                    Text("Connection")
-                }
-
-                Section {
-                    HStack {
-                        Button {
-                            Task { await testConn() }
-                        } label: {
-                            Label("Test Connection", systemImage: "network")
-                        }
-                        .disabled(isTesting)
-
-                        Spacer()
-
-                        if isTesting {
-                            ProgressView()
-                        } else {
-                            statusBadge
-                        }
-                    }
-
-                    if let result = testResult {
-                        Text(result)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                Section {
-                    onboardingContent
-                } header: {
-                    Text("How to connect your Mac Mini")
-                }
+                connectionSection
+                testSection
+                connectGuideSection
+                aboutSection
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
+                        .fontWeight(.semibold)
                 }
             }
         }
     }
 
-    @ViewBuilder
-    private var statusBadge: some View {
+    // MARK: - Connection fields
+
+    private var connectionSection: some View {
+        Section {
+            @Bindable var s = settings
+
+            HStack {
+                Label("Server URL", systemImage: "server.rack")
+                Spacer()
+                TextField("http://192.168.x.x:11434", text: $s.baseURLString)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .keyboardType(.URL)
+                    .multilineTextAlignment(.trailing)
+                    .foregroundStyle(.secondary)
+            }
+
+            HStack {
+                Label("API Key", systemImage: "key")
+                Spacer()
+                SecureField("Optional", text: $s.apiKey)
+                    .multilineTextAlignment(.trailing)
+                    .foregroundStyle(.secondary)
+            }
+
+            HStack {
+                Label("Model", systemImage: "cpu")
+                Spacer()
+                TextField("doomdoja", text: $s.modelName)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .multilineTextAlignment(.trailing)
+                    .foregroundStyle(.secondary)
+            }
+        } header: {
+            HStack {
+                Text("Connection")
+                Spacer()
+                statusPill
+            }
+            .textCase(nil)
+        }
+    }
+
+    // MARK: - Connection test
+
+    private var testSection: some View {
+        Section {
+            Button {
+                Task { await testConn() }
+            } label: {
+                HStack {
+                    Label("Test Connection", systemImage: "network")
+                    Spacer()
+                    if isTesting { ProgressView() }
+                }
+            }
+            .disabled(isTesting)
+
+            if let result = testResult {
+                Text(result)
+                    .font(.footnote)
+                    .foregroundStyle(store.connectionStatus == .connected ? .green : .secondary)
+            }
+        }
+    }
+
+    // MARK: - Connection guide
+
+    private var connectGuideSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("DoomDoja runs on your Mac Mini and exposes an OpenAI-compatible API. Configure your iPhone to reach it using one of these options:")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+
+                ForEach([
+                    ("network.badge.shield.half.filled", "Tailscale", "Install on both devices. Zero-config encrypted private tunnel — the easiest option."),
+                    ("cloud", "Cloudflare Tunnel", "Run `cloudflared` on your Mac for a secure public HTTPS endpoint."),
+                    ("wifi", "Local Wi-Fi", "Use your Mac's local IP when both devices are on the same network."),
+                ], id: \.1) { icon, name, desc in
+                    HStack(alignment: .top, spacing: 10) {
+                        Image(systemName: icon)
+                            .font(.footnote)
+                            .foregroundStyle(Color.accentColor)
+                            .frame(width: 18)
+                            .padding(.top, 1)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(name).font(.footnote.weight(.semibold))
+                            Text(desc).font(.footnote).foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
+            .padding(.vertical, 4)
+        } header: {
+            Text("How to connect your Mac Mini")
+        }
+    }
+
+    // MARK: - About
+
+    private var aboutSection: some View {
+        Section {
+            HStack {
+                Text("Version")
+                Spacer()
+                Text("1.0")
+                    .foregroundStyle(.secondary)
+            }
+        } footer: {
+            Text("DoomDoja — your local AI, always private.")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.top, 8)
+        }
+    }
+
+    // MARK: - Status pill
+
+    private var statusPill: some View {
+        HStack(spacing: 5) {
+            Circle()
+                .fill(statusColor)
+                .frame(width: 7, height: 7)
+            Text(statusLabel)
+                .font(.caption)
+                .foregroundStyle(statusColor)
+        }
+    }
+
+    private var statusColor: Color {
         switch store.connectionStatus {
-        case .connected:
-            Label("Connected", systemImage: "checkmark.circle.fill")
-                .font(.caption)
-                .foregroundStyle(.green)
-        case .disconnected:
-            Label("Offline", systemImage: "xmark.circle.fill")
-                .font(.caption)
-                .foregroundStyle(.red)
-        case .unknown:
-            Label("Unknown", systemImage: "questionmark.circle")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+        case .connected: .green
+        case .disconnected: .red
+        case .unknown: Color(.tertiaryLabel)
         }
     }
 
-    private var onboardingContent: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Your DoomDoja model runs on a Mac Mini and exposes an OpenAI-compatible API (e.g. Ollama or LM Studio). The iOS app connects to that server over your network.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            Text("Safe ways to expose your Mac Mini:")
-                .font(.caption.weight(.semibold))
-
-            ForEach([
-                ("Tailscale", "Zero-config private VPN. Install on both Mac and iPhone for a secure tunnel."),
-                ("Cloudflare Tunnel", "Use `cloudflared` on the Mac to create a public HTTPS endpoint."),
-                ("Local Wi-Fi", "Connect both devices to the same Wi-Fi. Use your Mac's local IP address."),
-            ], id: \.0) { name, desc in
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("• \(name)")
-                        .font(.caption.weight(.medium))
-                    Text(desc)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
+    private var statusLabel: String {
+        switch store.connectionStatus {
+        case .connected: "Online"
+        case .disconnected: "Offline"
+        case .unknown: "Unknown"
         }
-        .padding(.vertical, 4)
     }
+
+    // MARK: - Actions
 
     private func testConn() async {
         isTesting = true
         testResult = nil
         await store.testConnection(settings: settings)
         isTesting = false
-        switch store.connectionStatus {
-        case .connected: testResult = "Successfully reached the server."
-        case .disconnected: testResult = "Could not connect. Check the URL and that the server is running."
-        case .unknown: testResult = nil
-        }
+        testResult = store.connectionStatus == .connected
+            ? "Successfully connected to the server."
+            : "Could not connect. Check the URL and that your server is running."
     }
 }

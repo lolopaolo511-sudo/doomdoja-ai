@@ -6,78 +6,88 @@ struct ChatView: View {
     @Environment(AppSettings.self) private var settings
 
     @State private var inputText = ""
-    @State private var scrollProxy: ScrollViewProxy?
-    @State private var showError = false
 
     private var isActiveChat: Bool { store.activeChat?.id == chat.id }
-    private var canSend: Bool { !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !store.isStreaming }
+    private var canSend: Bool {
+        !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !store.isStreaming
+    }
 
     var body: some View {
         VStack(spacing: 0) {
-            // Message list
-            ScrollViewReader { proxy in
-                ScrollView {
-                    LazyVStack(spacing: 0) {
-                        ForEach(chat.sortedMessages) { message in
-                            MessageView(message: message)
-                                .id(message.id)
-                        }
+            messageList
 
-                        if store.isStreaming && isActiveChat {
-                            let last = chat.sortedMessages.last
-                            if last?.isUser == true {
-                                HStack {
-                                    TypingIndicatorView()
-                                    Spacer()
-                                }
-                            }
-                        }
-
-                        // Scroll anchor
-                        Color.clear
-                            .frame(height: 1)
-                            .id("bottom")
-                    }
-                    .padding(.vertical, 8)
-                }
-                .onChange(of: chat.messages.count) { _, _ in
-                    withAnimation { proxy.scrollTo("bottom") }
-                }
-                .onChange(of: store.isStreaming) { _, streaming in
-                    if streaming { withAnimation { proxy.scrollTo("bottom") } }
-                }
-                .onAppear {
-                    proxy.scrollTo("bottom")
-                }
-            }
-
-            Divider()
-
-            // Error banner
             if let err = store.errorMessage, isActiveChat {
-                HStack {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.yellow)
-                    Text(err)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Button { store.errorMessage = nil } label: {
-                        Image(systemName: "xmark")
-                            .font(.caption)
-                    }
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(Color(.tertiarySystemBackground))
+                errorBanner(err)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
             }
 
-            // Input bar
             inputBar
         }
         .navigationTitle(chat.title)
         .navigationBarTitleDisplayMode(.inline)
+        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: store.errorMessage != nil)
     }
+
+    // MARK: - Message list
+
+    private var messageList: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    ForEach(chat.sortedMessages) { message in
+                        MessageView(message: message)
+                            .id(message.id)
+                            .environment(store)
+                    }
+                    Color.clear.frame(height: 8).id("bottom")
+                }
+                .padding(.vertical, 8)
+                .animation(.spring(response: 0.35, dampingFraction: 0.8), value: chat.messages.count)
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .onChange(of: chat.messages.count) { _, _ in
+                scrollToBottom(proxy)
+            }
+            .onChange(of: store.streamingTokenCount) { _, _ in
+                if store.isStreaming { scrollToBottom(proxy, animated: false) }
+            }
+            .onAppear { scrollToBottom(proxy, animated: false) }
+        }
+    }
+
+    private func scrollToBottom(_ proxy: ScrollViewProxy, animated: Bool = true) {
+        if animated {
+            withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo("bottom") }
+        } else {
+            proxy.scrollTo("bottom")
+        }
+    }
+
+    // MARK: - Error banner
+
+    private func errorBanner(_ message: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.yellow)
+                .font(.caption)
+            Text(message)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+            Spacer()
+            Button { store.errorMessage = nil } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundStyle(.tertiary)
+                    .font(.subheadline)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(.ultraThinMaterial)
+        .overlay(Divider(), alignment: .top)
+    }
+
+    // MARK: - Input bar
 
     private var inputBar: some View {
         HStack(alignment: .bottom, spacing: 10) {
@@ -86,22 +96,37 @@ struct ChatView: View {
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
                 .background(Color(.secondarySystemBackground))
-                .clipShape(RoundedRectangle(cornerRadius: 22))
+                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
                 .disabled(store.isStreaming)
+                .submitLabel(.send)
+                .onSubmit {
+                    if canSend { Task { await send() } }
+                }
 
-            Button {
-                Task { await send() }
-            } label: {
-                Image(systemName: store.isStreaming ? "stop.circle.fill" : "arrow.up.circle.fill")
-                    .font(.system(size: 34))
-                    .foregroundStyle(canSend ? Color.accentColor : .secondary)
-            }
-            .disabled(!canSend && !store.isStreaming)
+            sendButton
         }
         .padding(.horizontal, 12)
-        .padding(.top, 8)
-        .padding(.bottom, 16)
+        .padding(.top, 10)
+        .padding(.bottom, 24)
         .background(.ultraThinMaterial)
+        .overlay(Divider(), alignment: .top)
+    }
+
+    private var sendButton: some View {
+        Button {
+            Task { await send() }
+        } label: {
+            ZStack {
+                Circle()
+                    .fill(canSend ? Color.accentColor : Color(.tertiarySystemFill))
+                    .frame(width: 36, height: 36)
+                Image(systemName: "arrow.up")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(canSend ? .white : Color(.tertiaryLabel))
+            }
+        }
+        .disabled(!canSend)
+        .animation(.spring(response: 0.25, dampingFraction: 0.7), value: canSend)
     }
 
     private func send() async {
