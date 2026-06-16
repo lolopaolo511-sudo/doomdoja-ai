@@ -107,18 +107,33 @@ def cmd_push(repo: str, remote: str = "origin", branch: str = "") -> dict:
             "status": "no_remote",
             "instruction": (
                 "Brak remote 'origin'. Dodaj go:\n"
-                "  git remote add origin https://github.com/OWNER/REPO.git\n"
-                "Lub z tokenem:\n"
-                "  git remote add origin https://TOKEN@github.com/OWNER/REPO.git"
+                "  git remote add origin https://github.com/OWNER/REPO.git"
             ),
         }
 
-    # Wstaw token do URL jeśli podany i jeszcze go tam nie ma
+    # Buduj URL z tokenem tylko na czas push — nie zapisuj do .git/config
+    push_url = remote_url
     if token and "github.com" in remote_url and "@github.com" not in remote_url:
-        authed_url = remote_url.replace("https://github.com", f"https://{token}@github.com")
-        git(["remote", "set-url", remote, authed_url], repo)
+        push_url = remote_url.replace("https://github.com", f"https://{token}@github.com")
 
-    r = git(["push", "-u", remote, branch], repo, check=False)
+    # Jeśli URL z tokenem, push bezpośrednio do URL (token nie trafia do .git/config)
+    if push_url != remote_url:
+        r = subprocess.run(
+            ["git", "push", "-u", push_url, f"HEAD:{branch}"],
+            cwd=repo, capture_output=True, text=True,
+        )
+        # Po udanym push ustaw upstream tracking
+        if r.returncode == 0:
+            subprocess.run(
+                ["git", "branch", "--set-upstream-to", f"{remote}/{branch}", branch],
+                cwd=repo, capture_output=True, text=True,
+            )
+    else:
+        r = subprocess.run(
+            ["git", "push", "-u", remote, branch],
+            cwd=repo, capture_output=True, text=True,
+        )
+
     if r.returncode != 0:
         err = r.stderr.strip()
         if not token:
@@ -126,11 +141,11 @@ def cmd_push(repo: str, remote: str = "origin", branch: str = "") -> dict:
                 "status": "auth_required",
                 "instruction": (
                     "Push wymaga uwierzytelnienia.\n"
-                    "Opcja 1 — token GitHub:\n"
+                    "Opcja 1 — token GitHub (zalecane):\n"
                     "  export GITHUB_TOKEN=ghp_TWÓJ_TOKEN\n"
                     "  python3 git_agent.py push --repo .\n\n"
-                    "Opcja 2 — gh CLI (jeśli zainstalowane):\n"
-                    "  brew install gh && gh auth login\n\n"
+                    "Opcja 2 — gh CLI:\n"
+                    "  gh auth login -h github.com\n\n"
                     "Opcja 3 — SSH:\n"
                     "  ssh-keygen -t ed25519 && cat ~/.ssh/id_ed25519.pub  # dodaj do GitHub\n"
                     "  git remote set-url origin git@github.com:OWNER/REPO.git"
