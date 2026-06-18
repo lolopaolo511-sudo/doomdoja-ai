@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Archive — Creative AI Experiments</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- GSAP -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+
+  <style>
+    /* ============================================================
+       RESET & BASE
+    ============================================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:           #0B0B0E;
+      --surface:      #101013;
+      --surface-hi:   #14141A;
+      --border:       #1C1C24;
+      --border-hi:    rgba(165,180,252,0.22);
+      --accent:       #A5B4FC;
+      --accent-dim:   rgba(165,180,252,0.10);
+      --accent-glow:  rgba(165,180,252,0.28);
+      --text-1:       #EBEBF5;
+      --text-2:       #7878A0;
+      --text-3:       #38384A;
+      --radius-card:  20px;
+      --radius-modal: 24px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text-1);
+      font-family: 'Inter', -apple-system, system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #28283A; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(165,180,252,0.4); }
+
+    /* ============================================================
+       HEADER
+    ============================================================ */
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      background: rgba(11,11,14,0.80);
+      backdrop-filter: blur(22px) saturate(180%);
+      -webkit-backdrop-filter: blur(22px) saturate(180%);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header-inner {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 24px;
+      height: 66px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    /* Logo */
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      flex-shrink: 0;
+    }
+
+    .logo-mark {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #A5B4FC 0%, #818CF8 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 0 20px rgba(165,180,252,0.2);
+    }
+
+    .logo-text {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-1);
+      letter-spacing: -0.025em;
+    }
+
+    /* Search */
+    .search-wrap {
+      flex: 1;
+      max-width: 380px;
+      position: relative;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 13px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-3);
+      pointer-events: none;
+    }
+
+    .search-input {
+      width: 100%;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 9px 16px 9px 40px;
+      font-family: inherit;
+      font-size: 14px;
+      color: var(--text-1);
+      transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+      line-height: 1.4;
+    }
+
+    .search-input::placeholder { color: var(--text-3); }
+
+    .search-input:focus {
+      outline: none;
+      border-color: rgba(165,180,252,0.35);
+      background: rgba(165,180,252,0.04);
+      box-shadow: 0 0 0 3px rgba(165,180,252,0.07);
+    }
+
+    .header-count {
+      margin-left: auto;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-3);
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    .count-highlight { color: var(--text-2); }
+
+    /* ============================================================
+       FILTER BAR
+    ============================================================ */
+    .filter-bar {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 26px 24px 14px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .filter-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-3);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 6px 16px;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.22s ease;
+      white-space: nowrap;
+      letter-spacing: 0.01em;
+    }
+
+    .filter-btn:hover {
+      border-color: rgba(165,180,252,0.2);
+      color: rgba(165,180,252,0.75);
+      background: rgba(165,180,252,0.05);
+    }
+
+    .filter-btn.active {
+      background: rgba(165,180,252,0.11);
+      border-color: rgba(165,180,252,0.28);
+      color: var(--accent);
+    }
+
+    /* ============================================================
+       GRID
+    ============================================================ */
+    .main-content {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 8px 24px 100px;
+    }
+
+    #projectGrid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+      gap: 20px;
+    }
+
+    /* ============================================================
+       CARD
+    ============================================================ */
+    .project-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      overflow: hidden;
+      cursor: pointer;
+      position: relative;
+      transition: border-color 0.35s ease, transform 0.35s cubic-bezier(0.4,0,0.2,1), box-shadow 0.35s ease;
+    }
+
+    .project-card:hover {
+      border-color: var(--border-hi);
+      transform: translateY(-6px);
+      box-shadow:
+        0 28px 56px rgba(0,0,0,0.55),
+        0 0 0 1px rgba(165,180,252,0.07);
+    }
+
+    /* Thumbnail */
+    .card-thumb {
+      height: 196px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card-thumb-bg {
+      width: 100%;
+      height: 100%;
+      transition: transform 0.55s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    .project-card:hover .card-thumb-bg {
+      transform: scale(1.05);
+    }
+
+    .thumb-grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.022) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.022) 1px, transparent 1px);
+      background-size: 28px 28px;
+      pointer-events: none;
+    }
+
+    .thumb-vignette {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to bottom, transparent 25%, rgba(16,16,19,0.96) 100%);
+      pointer-events: none;
+    }
+
+    /* Card body */
+    .card-body { padding: 20px; }
+
+    .card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 9px;
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-1);
+      letter-spacing: -0.015em;
+      line-height: 1.3;
+    }
+
+    .cat-pill {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 50px;
+      background: var(--accent-dim);
+      color: var(--accent);
+      border: 1px solid rgba(165,180,252,0.18);
+      flex-shrink: 0;
+      line-height: 1.5;
+    }
+
+    .card-desc {
+      font-size: 13.5px;
+      color: var(--text-2);
+      line-height: 1.65;
+      margin-bottom: 16px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .card-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+
+    .tech-tag {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 2px 9px;
+      border-radius: 50px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+      color: var(--text-3);
+      transition: all 0.2s ease;
+    }
+
+    .project-card:hover .tech-tag {
+      background: rgba(165,180,252,0.06);
+      border-color: rgba(165,180,252,0.12);
+      color: rgba(165,180,252,0.65);
+    }
+
+    .card-year {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-3);
+      flex-shrink: 0;
+    }
+
+    /* ============================================================
+       EMPTY STATE
+    ============================================================ */
+    #emptyState {
+      display: none;
+      text-align: center;
+      padding: 100px 20px;
+    }
+
+    .empty-glyph {
+      font-size: 40px;
+      opacity: 0.15;
+      margin-bottom: 18px;
+      font-weight: 300;
+    }
+
+    /* ============================================================
+       MODAL
+    ============================================================ */
+    #modal {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    #modal.is-open {
+      visibility: visible;
+      pointer-events: all;
+    }
+
+    #modalOverlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0);
+      cursor: pointer;
+    }
+
+    #modalBox {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 640px;
+      background: var(--surface);
+      border: 1px solid #22222E;
+      border-radius: var(--radius-modal);
+      overflow: hidden;
+      max-height: 88vh;
+      overflow-y: auto;
+      scrollbar-width: none;
+      box-shadow: 0 40px 80px rgba(0,0,0,0.7);
+    }
+
+    #modalBox::-webkit-scrollbar { display: none; }
+
+    .modal-thumb {
+      height: 256px;
+      position: relative;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .modal-thumb-vignette {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to bottom, transparent 15%, rgba(16,16,19,0.98) 100%);
+    }
+
+    .modal-body { padding: 28px; }
+
+    .modal-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+
+    .modal-title {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--text-1);
+      line-height: 1.2;
+      margin-top: 4px;
+    }
+
+    .close-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: var(--text-2);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .close-btn:hover {
+      background: rgba(255,255,255,0.12);
+      color: var(--text-1);
+      border-color: rgba(255,255,255,0.15);
+    }
+
+    .modal-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .meta-year {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-3);
+      padding: 4px 10px;
+      border-radius: 50px;
+      border: 1px solid var(--border);
+    }
+
+    .modal-desc {
+      font-size: 14.5px;
+      color: var(--text-2);
+      line-height: 1.75;
+      margin-bottom: 24px;
+    }
+
+    .section-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      margin-bottom: 10px;
+    }
+
+    .modal-tags {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 26px;
+    }
+
+    .modal-tag {
+      font-size: 12px;
+      font-weight: 500;
+      padding: 5px 14px;
+      border-radius: 50px;
+      background: rgba(165,180,252,0.08);
+      border: 1px solid rgba(165,180,252,0.16);
+      color: var(--accent);
+    }
+
+    .modal-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 0 0 24px;
+    }
+
+    .modal-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn-live {
+      background: linear-gradient(135deg, #A5B4FC, #818CF8);
+      color: #16162A;
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 13.5px;
+      padding: 11px 22px;
+      border-radius: 50px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.22s ease;
+      letter-spacing: 0.01em;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .btn-live:hover {
+      transform: scale(1.04);
+      box-shadow: 0 8px 28px rgba(165,180,252,0.32);
+    }
+
+    .btn-share {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-2);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 11px 18px;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-share:hover {
+      border-color: rgba(165,180,252,0.22);
+      color: var(--accent);
+      background: rgba(165,180,252,0.05);
+    }
+
+    /* ============================================================
+       FOOTER
+    ============================================================ */
+    .site-footer {
+      border-top: 1px solid var(--border);
+      padding: 24px;
+    }
+
+    .footer-inner {
+      max-width: 1120px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .footer-text {
+      font-size: 13px;
+      color: var(--text-3);
+    }
+
+    .footer-dot {
+      display: inline-block;
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: var(--text-3);
+      vertical-align: middle;
+      margin: 0 7px;
+      opacity: 0.5;
+    }
+
+    /* ============================================================
+       RESPONSIVE
+    ============================================================ */
+    @media (max-width: 640px) {
+      .header-inner { padding: 0 16px; gap: 12px; }
+      .logo-text { display: none; }
+      .header-count { display: none; }
+      .filter-bar { padding: 18px 16px 10px; }
+      .main-content { padding: 8px 16px 80px; }
+      #projectGrid { grid-template-columns: 1fr; }
+      .modal-body { padding: 20px; }
+      .modal-thumb { height: 200px; }
+      .modal-title { font-size: 19px; }
+    }
+
+    @media (max-width: 768px) {
+      #projectGrid { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===================================================
+       HEADER
+  =================================================== -->
+  <header class="site-header">
+    <div class="header-inner">
+
+      <a href="#" class="logo">
+        <div class="logo-mark">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <rect x="2"  y="2"  width="5" height="5" rx="1.5" fill="white"/>
+            <rect x="9"  y="2"  width="5" height="5" rx="1.5" fill="white" opacity="0.45"/>
+            <rect x="2"  y="9"  width="5" height="5" rx="1.5" fill="white" opacity="0.45"/>
+            <rect x="9"  y="9"  width="5" height="5" rx="1.5" fill="white"/>
+          </svg>
+        </div>
+        <span class="logo-text">Archive</span>
+      </a>
+
+      <div class="search-wrap">
+        <svg class="search-icon" width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        <input
+          type="text"
+          id="searchInput"
+          placeholder="Search projects, tools, experiments…"
+          class="search-input"
+          autocomplete="off"
+          spellcheck="false"
+        >
+      </div>
+
+      <div class="header-count">
+        <span id="visibleCount" class="count-highlight">10</span> / 10
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ===================================================
+       FILTER BAR
+  =================================================== -->
+  <div class="filter-bar" id="filterBar"></div>
+
+  <!-- ===================================================
+       MAIN GRID
+  =================================================== -->
+  <main class="main-content">
+    <div id="projectGrid"></div>
+
+    <div id="emptyState">
+      <div class="empty-glyph">∅</div>
+      <p style="color:var(--text-2);font-size:16px;font-weight:500;margin-bottom:6px;">No projects found</p>
+      <p style="color:var(--text-3);font-size:14px;">Try a different search or filter</p>
+    </div>
+  </main>
+
+  <!-- ===================================================
+       FOOTER
+  =================================================== -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <span class="footer-text">Archive — Creative AI Experiments</span>
+      <span class="footer-text">
+        Built with AI
+        <span class="footer-dot"></span>
+        2025–2026
+      </span>
+    </div>
+  </footer>
+
+  <!-- ===================================================
+       MODAL
+  =================================================== -->
+  <div id="modal">
+    <div id="modalOverlay"></div>
+    <div id="modalBox"></div>
+  </div>
+
+
+  <!-- ===================================================
+       SCRIPT
+  =================================================== -->
+  <script>
+    /* ============================================================
+       DATA
+    ============================================================ */
+    const PROJECTS = [
+      {
+        id: 1,
+        title: "Lumina UI",
+        shortDesc: "A generative interface system that breathes. Built with AI-directed design decisions.",
+        longDesc: "Lumina UI is an exploration of AI-assisted interface design, where Claude generates and iterates on component patterns in real-time. The system produces accessible, beautiful UI components based on semantic descriptions — bridging the gap between design intent and implementation. Every component can be regenerated with a single natural language prompt, enabling a new workflow between designer and machine.",
+        category: "Web",
+        year: 2025,
+        tech: ["React", "Claude API", "Tailwind CSS", "TypeScript"],
+        bg: "radial-gradient(circle at 22% 38%, rgba(139,92,246,0.60) 0%, transparent 48%), radial-gradient(circle at 78% 68%, rgba(99,102,241,0.45) 0%, transparent 44%), linear-gradient(148deg, #0e0820 0%, #13102e 100%)"
+      },
+      {
+        id: 2,
+        title: "Void Terrain",
+        shortDesc: "Procedurally generated landscapes that respond to ambient sound and cursor movement.",
+        longDesc: "Void Terrain uses AI-generated GLSL shader programs to create infinite, responsive landscapes in the browser. The terrain morphs in real-time based on audio input captured from the microphone and precise cursor coordinates, creating a meditative and deeply immersive experience that feels alive. No two sessions are ever identical — the AI seeds each run with a unique noise signature.",
+        category: "3D",
+        year: 2025,
+        tech: ["Three.js", "GLSL", "WebGL", "Web Audio API"],
+        bg: "radial-gradient(circle at 50% 88%, rgba(16,185,129,0.32) 0%, transparent 54%), radial-gradient(circle at 82% 18%, rgba(5,150,105,0.22) 0%, transparent 48%), linear-gradient(148deg, #04090a 0%, #071410 100%)"
+      },
+      {
+        id: 3,
+        title: "Chroma Type",
+        shortDesc: "Typography as a living system — letters that fracture, reform, and breathe with color.",
+        longDesc: "Chroma Type is a typographic experiment where text becomes a medium for generative animation. Letters are deconstructed into individual paths and then reconstructed through AI-choreographed motion sequences. Colors shift through perceptually uniform color spaces, ensuring the aesthetic always feels cohesive even as it evolves continuously. The piece runs as a screensaver or an ambient background.",
+        category: "Experiments",
+        year: 2026,
+        tech: ["GSAP", "Canvas API", "JavaScript", "CSS Houdini"],
+        bg: "radial-gradient(circle at 18% 52%, rgba(239,68,68,0.50) 0%, transparent 44%), radial-gradient(circle at 78% 28%, rgba(251,146,60,0.38) 0%, transparent 40%), linear-gradient(148deg, #1a0808 0%, #1e1008 100%)"
+      },
+      {
+        id: 4,
+        title: "Pulse Analytics",
+        shortDesc: "A real-time data dashboard with AI-powered anomaly detection and plain-language summaries.",
+        longDesc: "Pulse Analytics reimagines how data dashboards should feel — calm, readable, and intelligent. Under the hood, Claude processes incoming data streams and surfaces natural language summaries of anomalies and trends before the user notices them. The visual language is deliberately quiet so the signal always cuts through the noise. Works with any REST data source via a lightweight connector.",
+        category: "Interfaces",
+        year: 2026,
+        tech: ["Next.js", "D3.js", "Claude API", "Framer Motion"],
+        bg: "radial-gradient(circle at 62% 38%, rgba(20,184,166,0.42) 0%, transparent 50%), radial-gradient(circle at 22% 74%, rgba(6,182,212,0.30) 0%, transparent 42%), linear-gradient(148deg, #030f12 0%, #06151f 100%)"
+      },
+      {
+        id: 5,
+        title: "Forge CLI",
+        shortDesc: "A terminal tool that scaffolds entire projects from a single natural language description.",
+        longDesc: "Forge CLI is a developer tool that transforms vague natural language ideas into fully scaffolded, opinionated codebases. Describe your project in plain English, and Forge generates the folder structure, configuration files, initial components, and a tailored README. It understands context — if you say 'like Vercel but for audio,' it knows what that means. Ships with interactive mode and CI-ready templates.",
+        category: "Tools",
+        year: 2025,
+        tech: ["Node.js", "Claude API", "TypeScript", "Ink"],
+        bg: "radial-gradient(circle at 35% 55%, rgba(245,158,11,0.38) 0%, transparent 50%), radial-gradient(circle at 72% 24%, rgba(217,119,6,0.28) 0%, transparent 44%), linear-gradient(148deg, #100900 0%, #191005 100%)"
+      },
+      {
+        id: 6,
+        title: "Echo Space",
+        shortDesc: "A spatial audio experiment that renders sound as navigable 3D architecture.",
+        longDesc: "Echo Space translates audio frequency data into explorable three-dimensional architecture in real time. As music plays, the geometry of the space shifts and evolves — bass frequencies carve cavernous voids while high frequencies produce crystalline spires. The experience runs fully in WebXR and supports both headset and cursor navigation, making it accessible without a VR device.",
+        category: "3D",
+        year: 2026,
+        tech: ["Three.js", "WebXR", "Web Audio API", "GLSL"],
+        bg: "radial-gradient(circle at 50% 50%, rgba(79,70,229,0.38) 0%, transparent 54%), radial-gradient(circle at 86% 82%, rgba(124,58,237,0.30) 0%, transparent 40%), linear-gradient(148deg, #04051a 0%, #08092c 100%)"
+      },
+      {
+        id: 7,
+        title: "Flux Search",
+        shortDesc: "An AI-first search interface that thinks out loud while it finds answers.",
+        longDesc: "Flux Search reimagines the search experience by making the reasoning process visible. As the AI processes your query, its intermediate thoughts surface as animated text — you can watch it refine its understanding before presenting results. The interface was built to make AI transparency feel elegant rather than clinical. Supports semantic search across documents, URLs, and uploaded files.",
+        category: "Web",
+        year: 2026,
+        tech: ["Astro", "Claude API", "GSAP", "TypeScript"],
+        bg: "radial-gradient(circle at 32% 58%, rgba(16,185,129,0.38) 0%, transparent 50%), radial-gradient(circle at 72% 28%, rgba(6,148,162,0.30) 0%, transparent 44%), linear-gradient(148deg, #04100c 0%, #06140f 100%)"
+      },
+      {
+        id: 8,
+        title: "Prism Effects",
+        shortDesc: "A WebGL shader library for cinematic light and material effects, entirely AI-authored.",
+        longDesc: "Prism Effects is a collection of production-grade WebGL shaders for photorealistic material and lighting effects, without a game engine. All shaders were written through a collaborative prompting process — visual intent was described in natural language and iteratively refined until the output matched the reference. Ships as a zero-dependency ES module with a Vite plugin for instant integration.",
+        category: "Experiments",
+        year: 2025,
+        tech: ["WebGL", "GLSL", "TypeScript", "Vite"],
+        bg: "radial-gradient(circle at 18% 52%, rgba(236,72,153,0.38) 0%, transparent 38%), radial-gradient(circle at 52% 26%, rgba(99,102,241,0.32) 0%, transparent 38%), radial-gradient(circle at 82% 66%, rgba(234,179,8,0.22) 0%, transparent 38%), linear-gradient(148deg, #0f080e 0%, #100a18 100%)"
+      },
+      {
+        id: 9,
+        title: "Arc System",
+        shortDesc: "A headless, modular design system built to handle complexity without losing elegance.",
+        longDesc: "Arc System is a component library designed around the idea that complex UIs should feel calm. Every component was designed with AI assistance, testing hundreds of micro-interaction variants to find configurations that felt most natural to users. The system is fully headless — the logic and accessibility layer is decoupled from the visual layer, making it trivially customizable for any brand.",
+        category: "Interfaces",
+        year: 2025,
+        tech: ["React", "Framer Motion", "Radix UI", "CSS Grid"],
+        bg: "radial-gradient(circle at 42% 44%, rgba(99,102,241,0.32) 0%, transparent 50%), radial-gradient(circle at 76% 72%, rgba(148,163,184,0.14) 0%, transparent 44%), linear-gradient(148deg, #0c0d14 0%, #0f1019 100%)"
+      },
+      {
+        id: 10,
+        title: "Neural Prompt",
+        shortDesc: "A desktop app for power users that makes prompt engineering a structured, versionable workflow.",
+        longDesc: "Neural Prompt is an Electron application for developers and researchers who work with language models daily. It provides a structured environment for versioning prompts, running A/B tests across model outputs, building evaluation suites, and tracking how prompt quality changes over time. Think of it as Git for LLM prompts — with built-in diffing, branching, and regression detection.",
+        category: "Tools",
+        year: 2026,
+        tech: ["Electron", "Claude API", "React", "SQLite"],
+        bg: "radial-gradient(circle at 30% 38%, rgba(220,38,38,0.44) 0%, transparent 50%), radial-gradient(circle at 72% 66%, rgba(185,28,28,0.30) 0%, transparent 44%), linear-gradient(148deg, #150505 0%, #1a0808 100%)"
+      }
+    ];
+
+    const CATEGORIES = ['All', 'Web', '3D', 'Tools', 'Experiments', 'Interfaces'];
+
+    let activeCategory = 'All';
+    let searchQuery = '';
+
+    /* ============================================================
+       RENDER HELPERS
+    ============================================================ */
+    function renderFilterBar() {
+      document.getElementById('filterBar').innerHTML = CATEGORIES.map(cat => `
+        <button
+          class="filter-btn${cat === activeCategory ? ' active' : ''}"
+          onclick="setCategory('${cat}')"
+        >${cat}</button>
+      `).join('');
+    }
+
+    function cardHTML(p) {
+      const tagHTML = p.tech.slice(0, 3).map(t =>
+        `<span class="tech-tag">${t}</span>`
+      ).join('');
+
+      return `
+        <div
+          class="project-card"
+          data-id="${p.id}"
+          style="opacity:0; transform:translateY(22px);"
+          onclick="openModal(${p.id})"
+        >
+          <div class="card-thumb">
+            <div class="card-thumb-bg" style="background:${p.bg};"></div>
+            <div class="thumb-grid"></div>
+            <div class="thumb-vignette"></div>
+          </div>
+          <div class="card-body">
+            <div class="card-header">
+              <h3 class="card-title">${p.title}</h3>
+              <span class="cat-pill">${p.category}</span>
+            </div>
+            <p class="card-desc">${p.shortDesc}</p>
+            <div class="card-footer">
+              <div class="card-tags">${tagHTML}</div>
+              <span class="card-year">${p.year}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderGrid() {
+      document.getElementById('projectGrid').innerHTML =
+        PROJECTS.map(cardHTML).join('');
+
+      gsap.to('.project-card', {
+        opacity: 1,
+        y: 0,
+        duration: 0.52,
+        stagger: 0.07,
+        ease: 'power3.out',
+        delay: 0.08,
+        clearProps: 'transform'
+      });
+    }
+
+    /* ============================================================
+       FILTER / SEARCH
+    ============================================================ */
+    function matchesFilters(p) {
+      const catOK = activeCategory === 'All' || p.category === activeCategory;
+      const q = searchQuery.toLowerCase().trim();
+      const srchOK = !q
+        || p.title.toLowerCase().includes(q)
+        || p.shortDesc.toLowerCase().includes(q)
+        || p.longDesc.toLowerCase().includes(q)
+        || p.category.toLowerCase().includes(q)
+        || p.tech.some(t => t.toLowerCase().includes(q));
+      return catOK && srchOK;
+    }
+
+    function applyFilters() {
+      const matching = PROJECTS.filter(matchesFilters);
+      const matchIds = new Set(matching.map(p => p.id));
+      const allCards = document.querySelectorAll('.project-card');
+
+      allCards.forEach(card => {
+        const id = parseInt(card.dataset.id);
+        if (!matchIds.has(id)) {
+          card.style.display = 'none';
+        }
+      });
+
+      const visible = [];
+      allCards.forEach(card => {
+        const id = parseInt(card.dataset.id);
+        if (matchIds.has(id)) {
+          card.style.display = 'block';
+          visible.push(card);
+        }
+      });
+
+      if (visible.length > 0) {
+        gsap.fromTo(visible,
+          { opacity: 0, y: 14, scale: 0.97 },
+          {
+            opacity: 1, y: 0, scale: 1,
+            duration: 0.38,
+            stagger: 0.05,
+            ease: 'power3.out',
+            clearProps: 'scale'
+          }
+        );
+      }
+
+      document.getElementById('visibleCount').textContent = matching.length;
+
+      const grid = document.getElementById('projectGrid');
+      const empty = document.getElementById('emptyState');
+      if (matching.length === 0) {
+        grid.style.display = 'none';
+        empty.style.display = 'block';
+      } else {
+        grid.style.display = 'grid';
+        empty.style.display = 'none';
+      }
+    }
+
+    function setCategory(cat) {
+      activeCategory = cat;
+      renderFilterBar();
+      applyFilters();
+    }
+
+    let searchTimer;
+    document.getElementById('searchInput').addEventListener('input', e => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        searchQuery = e.target.value;
+        applyFilters();
+      }, 180);
+    });
+
+    /* ============================================================
+       MODAL
+    ============================================================ */
+    let openModalId = null;
+
+    function openModal(id) {
+      const p = PROJECTS.find(x => x.id === id);
+      if (!p) return;
+      openModalId = id;
+
+      const tagHTML = p.tech.map(t =>
+        `<span class="modal-tag">${t}</span>`
+      ).join('');
+
+      document.getElementById('modalBox').innerHTML = `
+        <div class="modal-thumb">
+          <div style="width:100%;height:100%;background:${p.bg};"></div>
+          <div class="thumb-grid"></div>
+          <div class="modal-thumb-vignette"></div>
+        </div>
+        <div class="modal-body">
+          <div class="modal-header">
+            <div>
+              <span class="cat-pill" style="display:inline-block;margin-bottom:10px;">${p.category}</span>
+              <h2 class="modal-title">${p.title}</h2>
+            </div>
+            <button class="close-btn" onclick="closeModal()" aria-label="Close">
+              <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+          <div class="modal-meta">
+            <span class="meta-year">${p.year}</span>
+          </div>
+          <p class="modal-desc">${p.longDesc}</p>
+          <div class="section-label">Stack & Tools</div>
+          <div class="modal-tags">${tagHTML}</div>
+          <div class="modal-divider"></div>
+          <div class="modal-actions">
+            <button class="btn-live" onclick="alert('Live preview coming soon!')">
+              <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+              </svg>
+              View Live
+            </button>
+            <button class="btn-share" id="shareBtn" onclick="handleShare()">
+              <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+              </svg>
+              Share
+            </button>
+          </div>
+        </div>
+      `;
+
+      const modal = document.getElementById('modal');
+      const overlay = document.getElementById('modalOverlay');
+      const box = document.getElementById('modalBox');
+
+      modal.classList.add('is-open');
+      document.body.style.overflow = 'hidden';
+
+      gsap.to(overlay, { background: 'rgba(0,0,0,0.76)', duration: 0.38, ease: 'power2.out' });
+
+      overlay.style.transition = 'backdrop-filter 0.38s ease, -webkit-backdrop-filter 0.38s ease';
+      overlay.style.backdropFilter = 'blur(18px)';
+      overlay.style.webkitBackdropFilter = 'blur(18px)';
+
+      gsap.fromTo(box,
+        { opacity: 0, scale: 0.92, y: 30 },
+        { opacity: 1, scale: 1, y: 0, duration: 0.46, ease: 'power3.out' }
+      );
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('modal');
+      const overlay = document.getElementById('modalOverlay');
+      const box = document.getElementById('modalBox');
+
+      overlay.style.backdropFilter = 'blur(0px)';
+      overlay.style.webkitBackdropFilter = 'blur(0px)';
+
+      gsap.to(overlay, { background: 'rgba(0,0,0,0)', duration: 0.28, ease: 'power2.in' });
+      gsap.to(box, {
+        opacity: 0, scale: 0.95, y: 18,
+        duration: 0.26, ease: 'power2.in',
+        onComplete: () => {
+          modal.classList.remove('is-open');
+          document.body.style.overflow = '';
+          openModalId = null;
+        }
+      });
+    }
+
+    function handleShare() {
+      const btn = document.getElementById('shareBtn');
+      if (!btn) return;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(window.location.href).catch(() => {});
+      }
+      const orig = btn.innerHTML;
+      btn.innerHTML = `
+        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+        </svg>
+        Copied!
+      `;
+      btn.style.color = 'var(--accent)';
+      btn.style.borderColor = 'rgba(165,180,252,0.28)';
+      setTimeout(() => {
+        btn.innerHTML = orig;
+        btn.style.color = '';
+        btn.style.borderColor = '';
+      }, 2200);
+    }
+
+    /* Close on Escape or overlay click */
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && openModalId !== null) closeModal();
+    });
+
+    document.getElementById('modalOverlay').addEventListener('click', closeModal);
+
+    /* ============================================================
+       INIT
+    ============================================================ */
+    renderFilterBar();
+    renderGrid();
+  </script>
+</body>
+</html>
