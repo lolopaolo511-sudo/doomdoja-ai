@@ -1,0 +1,1549 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Outsider — A Stray Experience</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:      #ff6b35;
+      --orange-dim:  rgba(255,107,53,0.25);
+      --neon-blue:   #00d4ff;
+      --neon-purple: #b44fff;
+      --neon-teal:   #00ffd5;
+      --dark:        #05050a;
+      --dark-2:      #090912;
+      --dark-navy:   #0d1b2a;
+      --text:        #c8d8e8;
+      --text-dim:    #607080;
+      --font-hud:    'Share Tech Mono', monospace;
+      --font-title:  'Orbitron', sans-serif;
+      --font-body:   'Rajdhani', sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--dark);
+      color: var(--text);
+      font-family: var(--font-body);
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 3px; }
+    ::-webkit-scrollbar-track { background: var(--dark); }
+    ::-webkit-scrollbar-thumb { background: var(--orange); }
+
+    /* ── RAIN ── */
+    #rain {
+      position: fixed; inset: 0;
+      pointer-events: none;
+      z-index: 2;
+      opacity: 0;
+    }
+
+    /* ── NAV ── */
+    #nav {
+      position: fixed; top: 0; width: 100%; z-index: 200;
+      padding: 1.5rem 2.5rem;
+      display: flex; align-items: center; justify-content: space-between;
+      transition: background 0.5s, padding 0.5s, border 0.5s;
+    }
+    #nav.scrolled {
+      background: rgba(5,5,10,0.92);
+      backdrop-filter: blur(18px);
+      padding: 0.85rem 2.5rem;
+      border-bottom: 1px solid rgba(255,107,53,0.18);
+    }
+    .nav-logo {
+      font-family: var(--font-title);
+      font-size: 0.7rem;
+      letter-spacing: 0.35em;
+      color: var(--orange);
+      text-shadow: 0 0 12px var(--orange);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .nav-links { display: flex; gap: 2.5rem; }
+    .nav-links a {
+      font-family: var(--font-hud);
+      font-size: 0.65rem;
+      letter-spacing: 0.25em;
+      color: var(--text-dim);
+      text-decoration: none;
+      text-transform: uppercase;
+      transition: color 0.3s, text-shadow 0.3s;
+    }
+    .nav-links a:hover {
+      color: var(--neon-blue);
+      text-shadow: 0 0 8px var(--neon-blue);
+    }
+
+    /* ── HUD TAG ── */
+    .hud { font-family: var(--font-hud); font-size: 0.65rem; letter-spacing: 0.3em; color: var(--neon-blue); text-transform: uppercase; }
+    .hud-orange { color: var(--orange); text-shadow: 0 0 6px var(--orange); }
+
+    /* ── NEON GLOWS ── */
+    .glow-orange { text-shadow: 0 0 15px var(--orange), 0 0 30px var(--orange), 0 0 60px rgba(255,107,53,0.4); }
+    .glow-blue   { text-shadow: 0 0 15px var(--neon-blue), 0 0 30px var(--neon-blue); }
+    .glow-purple { text-shadow: 0 0 12px var(--neon-purple), 0 0 25px var(--neon-purple); }
+
+    /* ── SECTION TITLE ── */
+    .sec-title {
+      font-family: var(--font-title);
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      line-height: 1.1;
+    }
+
+    /* ── DIVIDER ── */
+    .divider {
+      width: 100%; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--orange), var(--neon-blue), transparent);
+      opacity: 0.3;
+    }
+
+    /* ── SCANLINE ── */
+    @keyframes scan { 0% { top: -2%; } 100% { top: 102%; } }
+    .scanline {
+      position: absolute; left: 0; width: 100%; height: 1px; pointer-events: none;
+      background: linear-gradient(90deg, transparent, rgba(0,212,255,0.25), transparent);
+      animation: scan 6s linear infinite;
+    }
+
+    /* ════════════════════════════════════
+       HERO
+    ════════════════════════════════════ */
+    #hero {
+      position: relative;
+      min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      overflow: hidden;
+      background:
+        radial-gradient(ellipse at 15% 60%, rgba(180,79,255,0.12) 0%, transparent 55%),
+        radial-gradient(ellipse at 85% 20%, rgba(0,212,255,0.10) 0%, transparent 55%),
+        radial-gradient(ellipse at 50% 90%, rgba(255,107,53,0.08) 0%, transparent 55%),
+        linear-gradient(180deg, #05050a 0%, #090912 60%, #0d1b2a 100%);
+    }
+
+    /* City skyline */
+    #skyline { position: absolute; bottom: 0; left: 0; width: 100%; pointer-events: none; }
+
+    /* Hero neon sign strips */
+    .hero-strip {
+      position: absolute;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
+      opacity: 0.4;
+      width: 60%;
+    }
+
+    /* Glitch hero title */
+    .hero-title {
+      font-family: var(--font-title);
+      font-size: clamp(3.5rem, 11vw, 9rem);
+      font-weight: 900;
+      letter-spacing: 0.12em;
+      color: #fff;
+      text-shadow:
+        0 0 20px var(--orange),
+        0 0 50px rgba(255,107,53,0.5),
+        0 0 100px rgba(255,107,53,0.2);
+      position: relative;
+      user-select: none;
+    }
+    .hero-title::before {
+      content: attr(data-text);
+      position: absolute; inset: 0;
+      color: var(--neon-blue);
+      text-shadow: 0 0 20px var(--neon-blue);
+      opacity: 0;
+      clip-path: polygon(0 30%, 100% 30%, 100% 50%, 0 50%);
+      animation: glitch-before 7s infinite;
+    }
+    .hero-title::after {
+      content: attr(data-text);
+      position: absolute; inset: 0;
+      color: var(--orange);
+      text-shadow: 0 0 20px var(--orange);
+      opacity: 0;
+      clip-path: polygon(0 60%, 100% 60%, 100% 75%, 0 75%);
+      animation: glitch-after 7s infinite;
+    }
+    @keyframes glitch-before {
+      0%,89%,91%,100% { opacity: 0; transform: translateX(0); }
+      90% { opacity: 0.7; transform: translateX(-4px); }
+    }
+    @keyframes glitch-after {
+      0%,91%,93%,100% { opacity: 0; transform: translateX(0); }
+      92% { opacity: 0.6; transform: translateX(4px); }
+    }
+
+    .hero-sub {
+      font-family: var(--font-body);
+      font-size: clamp(1rem, 2.5vw, 1.4rem);
+      font-weight: 300;
+      letter-spacing: 0.15em;
+      color: var(--text-dim);
+      margin-top: 1.5rem;
+    }
+
+    /* Scroll caret */
+    @keyframes caret { 0%,100% { transform: translateY(0); opacity:1; } 55% { transform: translateY(10px); opacity:.3; } }
+    .scroll-caret { animation: caret 2s ease-in-out infinite; }
+
+    /* Neon sign in hero */
+    @keyframes flicker {
+      0%,92%,94%,96%,100% { opacity:1; }
+      93% { opacity:.3; }
+      95% { opacity:.8; }
+    }
+    .flicker { animation: flicker 9s infinite; }
+
+    /* ════════════════════════════════════
+       SECTION: THE CITY
+    ════════════════════════════════════ */
+    #city {
+      position: relative;
+      background: linear-gradient(180deg, #0d1b2a 0%, #090912 40%, #05050a 100%);
+      overflow: hidden;
+    }
+    .city-grid {
+      background-image:
+        linear-gradient(rgba(0,212,255,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,212,255,0.025) 1px, transparent 1px);
+      background-size: 50px 50px;
+    }
+    .memory-pill {
+      display: inline-block;
+      border: 1px solid rgba(255,107,53,0.3);
+      padding: 0.4rem 1rem;
+      font-family: var(--font-hud);
+      font-size: 0.6rem;
+      letter-spacing: 0.2em;
+      color: var(--orange);
+      margin: 0.3rem;
+      transition: all 0.3s;
+    }
+    .memory-pill:hover {
+      background: rgba(255,107,53,0.08);
+      border-color: var(--orange);
+      box-shadow: 0 0 12px rgba(255,107,53,0.3);
+    }
+
+    /* city building art CSS */
+    .city-art {
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 3px;
+      height: 220px;
+      overflow: hidden;
+      position: relative;
+    }
+    .bldg {
+      background: #0a0a14;
+      border-top: 1px solid rgba(0,212,255,0.15);
+      position: relative;
+      flex-shrink: 0;
+    }
+    .bldg::after {
+      content:'';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      background: linear-gradient(180deg, transparent, rgba(255,107,53,0.04));
+      height: 100%;
+    }
+    .win {
+      position: absolute;
+      background: rgba(0,212,255,0.6);
+      box-shadow: 0 0 4px rgba(0,212,255,0.8);
+    }
+    .win-o { background: rgba(255,107,53,0.7); box-shadow: 0 0 4px rgba(255,107,53,0.9); }
+    .win-p { background: rgba(180,79,255,0.6); box-shadow: 0 0 4px rgba(180,79,255,0.8); }
+    .fog-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(180deg, transparent 30%, rgba(5,5,10,0.7) 100%);
+      pointer-events: none;
+    }
+
+    /* neon signs */
+    .neon-sign {
+      font-family: var(--font-hud);
+      font-size: 0.55rem;
+      letter-spacing: 0.15em;
+      padding: 2px 6px;
+      border: 1px solid;
+    }
+    .ns-blue  { color: var(--neon-blue);   border-color: var(--neon-blue);   text-shadow: 0 0 6px var(--neon-blue);   box-shadow: 0 0 6px rgba(0,212,255,0.3); }
+    .ns-orange{ color: var(--orange);       border-color: var(--orange);       text-shadow: 0 0 6px var(--orange);       box-shadow: 0 0 6px rgba(255,107,53,0.3); }
+    .ns-purple{ color: var(--neon-purple);  border-color: var(--neon-purple);  text-shadow: 0 0 6px var(--neon-purple);  box-shadow: 0 0 6px rgba(180,79,255,0.3); }
+
+    /* ════════════════════════════════════
+       SECTION: THE CAT
+    ════════════════════════════════════ */
+    #cat {
+      background:
+        radial-gradient(ellipse at 50% 50%, rgba(255,107,53,0.06) 0%, transparent 65%),
+        linear-gradient(180deg, #05050a 0%, #090912 100%);
+      position: relative; overflow: hidden;
+    }
+    @keyframes breathe {
+      0%,100% { transform: translateY(0px) rotate(0deg); }
+      50%     { transform: translateY(-12px) rotate(0.5deg); }
+    }
+    .cat-float { animation: breathe 4.5s ease-in-out infinite; }
+
+    @keyframes tail-sway {
+      0%,100% { transform-origin: top; transform: rotate(-8deg); }
+      50%     { transform-origin: top; transform: rotate(8deg); }
+    }
+    .cat-tail { animation: tail-sway 3s ease-in-out infinite; }
+
+    .cat-aura {
+      position: absolute; inset: -30px;
+      background: radial-gradient(circle, rgba(255,107,53,0.12) 0%, transparent 70%);
+      border-radius: 50%;
+      animation: breathe 4.5s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    /* ════════════════════════════════════
+       SECTION: COMPANIONS
+    ════════════════════════════════════ */
+    #companions {
+      background: linear-gradient(180deg, #090912 0%, #0d1b2a 50%, #090912 100%);
+      position: relative; overflow: hidden;
+    }
+    .comp-card {
+      border: 1px solid rgba(0,212,255,0.12);
+      background: rgba(13,27,42,0.5);
+      padding: 2rem;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.4s, box-shadow 0.4s, border-color 0.4s;
+      cursor: default;
+    }
+    .comp-card::before {
+      content: '';
+      position: absolute; top: 0; left: -100%; width: 100%; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
+      transition: left 0.6s;
+    }
+    .comp-card::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(0,212,255,0.03), transparent);
+      opacity: 0; transition: opacity 0.4s;
+    }
+    .comp-card:hover { transform: translateY(-4px); border-color: rgba(0,212,255,0.35); box-shadow: 0 0 24px rgba(0,212,255,0.12); }
+    .comp-card:hover::before { left: 100%; }
+    .comp-card:hover::after { opacity: 1; }
+
+    .comp-icon {
+      width: 64px; height: 64px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 1.25rem;
+      border: 1px solid rgba(0,212,255,0.2);
+      position: relative;
+    }
+    .comp-icon::after {
+      content: '';
+      position: absolute; inset: -4px;
+      border: 1px solid rgba(0,212,255,0.08);
+    }
+
+    /* ════════════════════════════════════
+       SECTION: MEMORIES
+    ════════════════════════════════════ */
+    #memories {
+      background: #05050a;
+      position: relative;
+    }
+    .mem-card {
+      position: relative; overflow: hidden;
+      height: 280px;
+      cursor: pointer;
+      border: 1px solid rgba(255,107,53,0.1);
+      transition: transform 0.4s, box-shadow 0.4s, border-color 0.4s;
+    }
+    .mem-card:hover {
+      transform: translateY(-6px);
+      border-color: rgba(255,107,53,0.5);
+      box-shadow: 0 0 30px rgba(255,107,53,0.2), 0 20px 40px rgba(0,0,0,0.6);
+    }
+    .mem-bg {
+      position: absolute; inset: 0;
+      transition: transform 0.6s;
+    }
+    .mem-card:hover .mem-bg { transform: scale(1.06); }
+
+    .mem-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(to top, rgba(5,5,10,0.97) 25%, rgba(5,5,10,0.4) 100%);
+      transition: background 0.4s;
+    }
+    .mem-card:hover .mem-overlay {
+      background: linear-gradient(to top, rgba(5,5,10,0.92) 20%, rgba(5,5,10,0.15) 100%);
+    }
+    .mem-neon-line {
+      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, var(--orange), var(--neon-blue));
+      transform: scaleX(0); transform-origin: left;
+      transition: transform 0.5s;
+    }
+    .mem-card:hover .mem-neon-line { transform: scaleX(1); }
+
+    .mem-num {
+      position: absolute; top: 1rem; right: 1rem;
+      font-family: var(--font-hud);
+      font-size: 0.6rem;
+      color: rgba(255,107,53,0.4);
+      letter-spacing: 0.2em;
+    }
+    .mem-card:hover .mem-num { color: var(--orange); text-shadow: 0 0 6px var(--orange); }
+
+    .mem-content {
+      position: absolute; bottom: 0; left: 0; right: 0; padding: 1.5rem;
+    }
+    .mem-tag {
+      font-family: var(--font-hud);
+      font-size: 0.55rem;
+      letter-spacing: 0.25em;
+      color: var(--neon-blue);
+      margin-bottom: 0.5rem;
+      opacity: 0; transform: translateY(8px);
+      transition: opacity 0.4s 0.1s, transform 0.4s 0.1s;
+    }
+    .mem-card:hover .mem-tag { opacity: 1; transform: translateY(0); }
+    .mem-title {
+      font-family: var(--font-title);
+      font-size: 1rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+    }
+    .mem-desc {
+      font-family: var(--font-body);
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      font-weight: 300;
+      max-height: 0; overflow: hidden;
+      transition: max-height 0.5s;
+    }
+    .mem-card:hover .mem-desc { max-height: 80px; }
+
+    /* Memory BG gradients — each one different */
+    .mb1 { background: linear-gradient(135deg, #1a0a2e, #0e1a3d); }
+    .mb2 { background: linear-gradient(135deg, #0a100a, #1a2e1a, #0d1b0d); }
+    .mb3 { background: linear-gradient(135deg, #1e0a0a, #2e1616, #0d0505); }
+    .mb4 { background: linear-gradient(135deg, #0a0a1a, #1a1a3e, #0d0d28); }
+    .mb5 { background: linear-gradient(135deg, #0a1a18, #0d2e2a, #05100f); }
+    .mb6 { background: linear-gradient(135deg, #1a1a0a, #2e2e12, #0f0f05); }
+
+    /* Abstract shapes inside memory cards */
+    .mem-shape {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(40px);
+      opacity: 0.35;
+      pointer-events: none;
+    }
+
+    /* ════════════════════════════════════
+       SECTION: THE END
+    ════════════════════════════════════ */
+    #end {
+      position: relative; min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      overflow: hidden;
+      background:
+        radial-gradient(ellipse at 30% 70%, rgba(180,79,255,0.08) 0%, transparent 55%),
+        radial-gradient(ellipse at 70% 30%, rgba(255,107,53,0.08) 0%, transparent 55%),
+        linear-gradient(180deg, #05050a 0%, #090912 100%);
+    }
+
+    /* CTA Button */
+    .btn-cta {
+      display: inline-block;
+      font-family: var(--font-title);
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.3em;
+      color: var(--orange);
+      border: 1px solid var(--orange);
+      padding: 1rem 2.5rem;
+      text-decoration: none;
+      position: relative; overflow: hidden;
+      transition: color 0.35s, box-shadow 0.35s;
+      text-transform: uppercase;
+    }
+    .btn-cta::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: var(--orange);
+      transform: translateX(-101%);
+      transition: transform 0.35s ease;
+    }
+    .btn-cta:hover::before { transform: translateX(0); }
+    .btn-cta:hover { color: var(--dark); box-shadow: 0 0 30px rgba(255,107,53,0.4); }
+    .btn-cta span { position: relative; z-index: 1; }
+
+    /* Quote decoration */
+    .quote-mark {
+      font-family: var(--font-title);
+      font-size: 8rem;
+      line-height: 0.6;
+      color: rgba(255,107,53,0.08);
+      user-select: none;
+      pointer-events: none;
+    }
+
+    /* ════════════════════════════════════
+       FOOTER
+    ════════════════════════════════════ */
+    footer {
+      background: var(--dark);
+      border-top: 1px solid rgba(255,107,53,0.1);
+      padding: 2rem 2.5rem;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 1rem;
+    }
+
+    /* ════════════════════════════════════
+       PARTICLES
+    ════════════════════════════════════ */
+    @keyframes particle-rise {
+      0%   { transform: translateY(0) translateX(0) scale(1); opacity: 0; }
+      10%  { opacity: 0.6; }
+      80%  { opacity: 0.3; }
+      100% { transform: translateY(-100px) translateX(20px) scale(0.3); opacity: 0; }
+    }
+    .particle {
+      position: absolute;
+      width: 3px; height: 3px;
+      border-radius: 50%;
+      background: var(--orange);
+      animation: particle-rise linear infinite;
+      pointer-events: none;
+    }
+
+    /* ════════════════════════════════════
+       UTILITIES / ANIMATIONS
+    ════════════════════════════════════ */
+    .fade-up { opacity: 0; transform: translateY(40px); }
+
+    .progress-bar {
+      position: fixed; top: 0; left: 0; height: 2px; z-index: 999;
+      background: linear-gradient(90deg, var(--orange), var(--neon-blue));
+      width: 0%; transition: width 0.1s linear;
+    }
+
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .hero-title { font-size: clamp(2.8rem, 14vw, 5rem); }
+      .city-art { height: 140px; }
+      .mem-card { height: 220px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Progress bar -->
+<div class="progress-bar" id="progress"></div>
+
+<!-- Rain canvas -->
+<canvas id="rain"></canvas>
+
+<!-- ══════════════════════════════════════
+     NAVIGATION
+══════════════════════════════════════ -->
+<nav id="nav">
+  <div class="nav-logo">
+    <!-- Paw SVG -->
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--orange)" style="filter: drop-shadow(0 0 4px var(--orange));">
+      <circle cx="7"  cy="4"  r="2.2"/>
+      <circle cx="12" cy="2"  r="2.2"/>
+      <circle cx="17" cy="4"  r="2.2"/>
+      <circle cx="4.5" cy="9" r="2"/>
+      <path d="M12 9.5c-4.5 0-7 3-6.5 6.5s3 5.5 6.5 5.5 6-2.5 6.5-5.5S16.5 9.5 12 9.5z"/>
+    </svg>
+    THE OUTSIDER
+  </div>
+  <div class="nav-links">
+    <a href="#city">Miasto</a>
+    <a href="#cat">Kot</a>
+    <a href="#companions">Towarzysze</a>
+    <a href="#memories">Wspomnienia</a>
+    <a href="#end">Koniec</a>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════
+     HERO
+══════════════════════════════════════ -->
+<section id="hero">
+  <div class="scanline"></div>
+
+  <!-- City skyline SVG -->
+  <svg id="skyline" viewBox="0 0 1440 320" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="sky-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#0d1b2a" stop-opacity="0"/>
+        <stop offset="100%" stop-color="#0d1b2a" stop-opacity="1"/>
+      </linearGradient>
+      <filter id="blur-city">
+        <feGaussianBlur stdDeviation="1.5"/>
+      </filter>
+    </defs>
+    <!-- Background city layer (blurred) -->
+    <g filter="url(#blur-city)" opacity="0.5">
+      <rect x="0"   y="180" width="55"  height="140" fill="#09091a"/>
+      <rect x="60"  y="130" width="40"  height="190" fill="#09091a"/>
+      <rect x="105" y="160" width="70"  height="160" fill="#09091a"/>
+      <rect x="180" y="100" width="45"  height="220" fill="#09091a"/>
+      <rect x="230" y="150" width="55"  height="170" fill="#09091a"/>
+      <rect x="290" y="80"  width="35"  height="240" fill="#09091a"/>
+      <rect x="330" y="120" width="80"  height="200" fill="#09091a"/>
+      <rect x="415" y="170" width="40"  height="150" fill="#09091a"/>
+      <rect x="460" y="90"  width="60"  height="230" fill="#09091a"/>
+      <rect x="525" y="140" width="50"  height="180" fill="#09091a"/>
+      <rect x="580" y="60"  width="45"  height="260" fill="#09091a"/>
+      <rect x="630" y="110" width="70"  height="210" fill="#09091a"/>
+      <rect x="705" y="150" width="35"  height="170" fill="#09091a"/>
+      <rect x="745" y="80"  width="55"  height="240" fill="#09091a"/>
+      <rect x="805" y="130" width="65"  height="190" fill="#09091a"/>
+      <rect x="875" y="100" width="40"  height="220" fill="#09091a"/>
+      <rect x="920" y="160" width="75"  height="160" fill="#09091a"/>
+      <rect x="1000" y="70" width="50"  height="250" fill="#09091a"/>
+      <rect x="1055" y="140" width="60" height="180" fill="#09091a"/>
+      <rect x="1120" y="90" width="45"  height="230" fill="#09091a"/>
+      <rect x="1170" y="120" width="80" height="200" fill="#09091a"/>
+      <rect x="1255" y="150" width="50" height="170" fill="#09091a"/>
+      <rect x="1310" y="80" width="40"  height="240" fill="#09091a"/>
+      <rect x="1355" y="140" width="85" height="180" fill="#09091a"/>
+    </g>
+    <!-- Foreground city layer -->
+    <rect x="0"    y="220" width="60"  height="100" fill="#0a0a16"/>
+    <rect x="65"   y="190" width="45"  height="130" fill="#0a0a16"/>
+    <rect x="115"  y="170" width="55"  height="150" fill="#0a0a16"/>
+    <rect x="175"  y="140" width="40"  height="180" fill="#0a0a16"/>
+    <rect x="220"  y="200" width="70"  height="120" fill="#0a0a16"/>
+    <rect x="295"  y="150" width="35"  height="170" fill="#0a0a16"/>
+    <rect x="335"  y="110" width="55"  height="210" fill="#0a0a16"/>
+    <rect x="395"  y="180" width="45"  height="140" fill="#0a0a16"/>
+    <rect x="445"  y="120" width="65"  height="200" fill="#0a0a16"/>
+    <rect x="515"  y="160" width="50"  height="160" fill="#0a0a16"/>
+    <rect x="570"  y="90"  width="40"  height="230" fill="#0a0a16"/>
+    <rect x="615"  y="145" width="75"  height="175" fill="#0a0a16"/>
+    <rect x="695"  y="200" width="40"  height="120" fill="#0a0a16"/>
+    <rect x="740"  y="130" width="55"  height="190" fill="#0a0a16"/>
+    <rect x="800"  y="160" width="60"  height="160" fill="#0a0a16"/>
+    <rect x="865"  y="110" width="45"  height="210" fill="#0a0a16"/>
+    <rect x="915"  y="175" width="70"  height="145" fill="#0a0a16"/>
+    <rect x="990"  y="100" width="50"  height="220" fill="#0a0a16"/>
+    <rect x="1045" y="155" width="60"  height="165" fill="#0a0a16"/>
+    <rect x="1110" y="120" width="45"  height="200" fill="#0a0a16"/>
+    <rect x="1160" y="165" width="75"  height="155" fill="#0a0a16"/>
+    <rect x="1240" y="190" width="50"  height="130" fill="#0a0a16"/>
+    <rect x="1295" y="140" width="45"  height="180" fill="#0a0a16"/>
+    <rect x="1345" y="105" width="95"  height="215" fill="#0a0a16"/>
+    <!-- Neon window dots -->
+    <rect x="75"   y="200" width="4" height="3" fill="#00d4ff" opacity="0.7"/>
+    <rect x="82"   y="215" width="4" height="3" fill="#00d4ff" opacity="0.5"/>
+    <rect x="145"  y="180" width="4" height="3" fill="#ff6b35" opacity="0.8"/>
+    <rect x="160"  y="195" width="4" height="3" fill="#ff6b35" opacity="0.5"/>
+    <rect x="350"  y="120" width="5" height="4" fill="#00d4ff" opacity="0.7"/>
+    <rect x="360"  y="135" width="5" height="4" fill="#00d4ff" opacity="0.4"/>
+    <rect x="355"  y="150" width="5" height="4" fill="#b44fff" opacity="0.6"/>
+    <rect x="580"  y="100" width="4" height="3" fill="#00ffd5" opacity="0.7"/>
+    <rect x="590"  y="115" width="4" height="3" fill="#00ffd5" opacity="0.4"/>
+    <rect x="745"  y="140" width="5" height="4" fill="#ff6b35" opacity="0.8"/>
+    <rect x="755"  y="155" width="5" height="4" fill="#ff6b35" opacity="0.5"/>
+    <rect x="1005" y="110" width="4" height="3" fill="#00d4ff" opacity="0.7"/>
+    <rect x="1015" y="125" width="4" height="3" fill="#b44fff" opacity="0.6"/>
+    <rect x="1170" y="175" width="5" height="4" fill="#00d4ff" opacity="0.5"/>
+    <rect x="1185" y="190" width="5" height="4" fill="#ff6b35" opacity="0.7"/>
+    <!-- Gradient overlay -->
+    <rect x="0" y="0" width="1440" height="320" fill="url(#sky-grad)"/>
+  </svg>
+
+  <!-- Neon horizontal strips -->
+  <div style="position:absolute; top: 55%; left: 10%; width: 35%; height: 1px; background: linear-gradient(90deg, transparent, var(--neon-blue), transparent); opacity: 0.3;"></div>
+  <div style="position:absolute; top: 62%; right: 8%;  width: 25%; height: 1px; background: linear-gradient(90deg, transparent, var(--orange), transparent); opacity: 0.25;"></div>
+
+  <!-- Neon signs top corners -->
+  <div class="flicker" style="position:absolute; top: 20%; left: 8%; opacity: 0.5;">
+    <div class="neon-sign ns-blue">バイオシティ</div>
+  </div>
+  <div class="flicker" style="position:absolute; top: 25%; right: 10%; opacity: 0.4; animation-delay: 2s;">
+    <div class="neon-sign ns-purple">SECTOR 7</div>
+  </div>
+  <div class="flicker" style="position:absolute; bottom: 32%; left: 15%; opacity: 0.35; animation-delay: 4s;">
+    <div class="neon-sign ns-orange">DEAD CITY</div>
+  </div>
+
+  <!-- Hero Content -->
+  <div style="position:relative; z-index: 10; text-align: center; padding: 2rem;">
+    <p class="hud fade-up" style="margin-bottom: 1rem; opacity: 0;">— WALLED CITY // LOKALIZACJA NIEZNANA —</p>
+    <h1 class="hero-title fade-up" data-text="THE OUTSIDER" style="opacity:0;">THE OUTSIDER</h1>
+    <p class="hero-sub fade-up" style="opacity:0;">
+      Jeden kot. Jedno miasto. Milion historii zagubionych w deszczu.
+    </p>
+
+    <!-- Stats row -->
+    <div class="fade-up" style="display:flex; align-items:center; justify-content:center; gap:2.5rem; margin-top:2.5rem; opacity:0;">
+      <div style="text-align:center;">
+        <div style="font-family:var(--font-title); font-size:1.4rem; color:var(--orange); text-shadow:0 0 12px var(--orange);">∞</div>
+        <div class="hud" style="font-size:0.5rem; margin-top:2px;">Zaułków</div>
+      </div>
+      <div style="width:1px; height:30px; background:rgba(255,255,255,0.1);"></div>
+      <div style="text-align:center;">
+        <div style="font-family:var(--font-title); font-size:1.4rem; color:var(--neon-blue); text-shadow:0 0 12px var(--neon-blue);">01</div>
+        <div class="hud" style="font-size:0.5rem; margin-top:2px;">Kot</div>
+      </div>
+      <div style="width:1px; height:30px; background:rgba(255,255,255,0.1);"></div>
+      <div style="text-align:center;">
+        <div style="font-family:var(--font-title); font-size:1.4rem; color:var(--neon-purple); text-shadow:0 0 12px var(--neon-purple);">0%</div>
+        <div class="hud" style="font-size:0.5rem; margin-top:2px;">Strachu</div>
+      </div>
+    </div>
+
+    <!-- Scroll indicator -->
+    <div class="scroll-caret" style="margin-top:3.5rem; display:flex; flex-direction:column; align-items:center; gap:0.5rem;">
+      <span class="hud" style="font-size:0.5rem; color:var(--text-dim);">Odkryj miasto</span>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="1.5">
+        <polyline points="6 9 12 15 18 9"/>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════════════════
+     THE CITY
+══════════════════════════════════════ -->
+<section id="city" class="city-grid" style="padding: 7rem 2rem;">
+  <div style="max-width:1200px; margin:0 auto;">
+
+    <!-- Header -->
+    <div class="fade-up" style="text-align:center; margin-bottom: 5rem;">
+      <p class="hud" style="margin-bottom:1rem;">// 01 — ŚRODOWISKO</p>
+      <h2 class="sec-title glow-blue" style="font-size: clamp(2rem, 5vw, 3.5rem); color: var(--neon-blue);">THE CITY</h2>
+      <div style="width:60px; height:2px; background:linear-gradient(90deg,var(--orange),var(--neon-blue)); margin:1.2rem auto;"></div>
+      <p style="max-width:600px; margin:0 auto; color:var(--text-dim); font-size:1.1rem; font-weight:300; line-height:1.8;">
+        Gdzieś pod powierzchnią ziemi, za murami bez wyjścia, istnieje świat zapomniany przez słońce. Miasto zbudowane z neonów, rur parowych i snów robotów, które nigdy nie zaznały prawdziwego nieba.
+      </p>
+    </div>
+
+    <!-- City CSS Art -->
+    <div class="fade-up city-art" style="margin-bottom: 4rem; position:relative;">
+      <!-- Buildings -->
+      <div class="bldg" style="width:50px;  height:180px;">
+        <div class="win"   style="width:6px;height:4px;top:20px;left:8px;"></div>
+        <div class="win"   style="width:6px;height:4px;top:30px;left:20px;"></div>
+        <div class="win-o" style="width:6px;height:4px;top:45px;left:8px;"></div>
+        <div class="win"   style="width:6px;height:4px;top:60px;left:20px;"></div>
+      </div>
+      <div class="bldg" style="width:35px;  height:130px;">
+        <div class="win-p" style="width:5px;height:3px;top:15px;left:8px;"></div>
+        <div class="win-p" style="width:5px;height:3px;top:25px;left:18px;"></div>
+      </div>
+      <div class="bldg" style="width:65px;  height:200px; border-top: 2px solid rgba(0,212,255,0.3);">
+        <div class="win"   style="width:8px;height:5px;top:20px;left:10px;"></div>
+        <div class="win"   style="width:8px;height:5px;top:20px;left:25px;"></div>
+        <div class="win-o" style="width:8px;height:5px;top:35px;left:10px;"></div>
+        <div class="win"   style="width:8px;height:5px;top:50px;left:25px;"></div>
+        <div class="win-p" style="width:8px;height:5px;top:65px;left:10px;"></div>
+        <div class="win"   style="width:8px;height:5px;top:80px;left:25px;"></div>
+        <!-- Neon sign on building -->
+        <div style="position:absolute; top:8px; left:4px; font-family:var(--font-hud); font-size:0.35rem; color:var(--neon-blue); text-shadow:0 0 4px var(--neon-blue); letter-spacing:0.1em;" class="flicker">NOODLE</div>
+      </div>
+      <div class="bldg" style="width:40px;  height:155px;">
+        <div class="win-o" style="width:6px;height:4px;top:15px;left:8px;"></div>
+        <div class="win"   style="width:6px;height:4px;top:30px;left:20px;"></div>
+        <div class="win"   style="width:6px;height:4px;top:45px;left:8px;"></div>
+      </div>
+      <div class="bldg" style="width:80px;  height:220px; background:#07071a; border-top: 2px solid rgba(255,107,53,0.4);">
+        <div class="win"   style="width:8px;height:5px;top:15px;left:10px;"></div>
+        <div class="win"   style="width:8px;height:5px;top:15px;left:30px;"></div>
+        <div class="win"   style="width:8px;height:5px;top:15px;left:50px;"></div>
+        <div class="win-o" style="width:8px;height:5px;top:30px;left:20px;"></div>
+        <div class="win-o" style="width:8px;height:5px;top:30px;left:40px;"></div>
+        <div class="win"   style="width:8px;height:5px;top:45px;left:10px;"></div>
+        <div class="win"   style="width:8px;height:5px;top:45px;left:30px;"></div>
+        <div class="win-p" style="width:8px;height:5px;top:60px;left:50px;"></div>
+        <div class="win"   style="width:8px;height:5px;top:75px;left:10px;"></div>
+        <div class="win"   style="width:8px;height:5px;top:75px;left:30px;"></div>
+        <!-- sign -->
+        <div style="position:absolute;top:6px;left:4px;font-family:var(--font-hud);font-size:0.35rem;color:var(--orange);text-shadow:0 0 4px var(--orange);letter-spacing:0.08em;" class="flicker" style="animation-delay:1s;">居住区 BLOCK 9</div>
+      </div>
+      <div class="bldg" style="width:30px; height:110px;">
+        <div class="win-p" style="width:5px;height:3px;top:10px;left:8px;"></div>
+        <div class="win"   style="width:5px;height:3px;top:22px;left:14px;"></div>
+      </div>
+      <div class="bldg" style="width:55px;  height:175px;">
+        <div class="win"   style="width:7px;height:4px;top:20px;left:8px;"></div>
+        <div class="win-o" style="width:7px;height:4px;top:35px;left:22px;"></div>
+        <div class="win"   style="width:7px;height:4px;top:50px;left:8px;"></div>
+        <div class="win"   style="width:7px;height:4px;top:65px;left:22px;"></div>
+        <div class="win-p" style="width:7px;height:4px;top:80px;left:8px;"></div>
+      </div>
+      <div class="bldg" style="width:45px;  height:145px;">
+        <div class="win-o" style="width:6px;height:4px;top:12px;left:8px;"></div>
+        <div class="win"   style="width:6px;height:4px;top:25px;left:22px;"></div>
+        <div class="win"   style="width:6px;height:4px;top:40px;left:8px;"></div>
+      </div>
+      <div class="bldg" style="width:70px;  height:195px; background:#080816; border-top: 2px solid rgba(180,79,255,0.4);">
+        <div class="win"   style="width:8px;height:5px;top:20px;left:10px;"></div>
+        <div class="win"   style="width:8px;height:5px;top:20px;left:30px;"></div>
+        <div class="win-p" style="width:8px;height:5px;top:35px;left:10px;"></div>
+        <div class="win"   style="width:8px;height:5px;top:35px;left:30px;"></div>
+        <div class="win-o" style="width:8px;height:5px;top:50px;left:10px;"></div>
+        <div class="win"   style="width:8px;height:5px;top:50px;left:30px;"></div>
+        <div class="win-p" style="width:8px;height:5px;top:65px;left:10px;"></div>
+        <div class="win"   style="width:8px;height:5px;top:65px;left:30px;"></div>
+        <div class="win"   style="width:8px;height:5px;top:80px;left:10px;"></div>
+        <div style="position:absolute;top:6px;left:4px;font-family:var(--font-hud);font-size:0.32rem;color:var(--neon-purple);text-shadow:0 0 4px var(--neon-purple);" class="flicker" style="animation-delay:3s;">MIDTOWN</div>
+      </div>
+      <div class="bldg" style="width:35px;  height:125px;">
+        <div class="win"   style="width:5px;height:3px;top:15px;left:8px;"></div>
+        <div class="win-o" style="width:5px;height:3px;top:28px;left:18px;"></div>
+      </div>
+      <div class="fog-overlay"></div>
+    </div>
+
+    <!-- City description grid -->
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:2rem; margin-bottom:4rem;">
+
+      <div class="fade-up" style="padding:2rem; border:1px solid rgba(0,212,255,0.1); background:rgba(13,27,42,0.3); position:relative;">
+        <div style="position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg, var(--neon-blue), transparent);"></div>
+        <p class="hud" style="font-size:0.55rem; margin-bottom:0.75rem; color:var(--neon-blue);">SLUMS // STREFA DOLNA</p>
+        <h3 class="sec-title" style="font-size:1.1rem; color:#fff; margin-bottom:0.75rem;">Zaułki Bez Świtu</h3>
+        <p style="color:var(--text-dim); font-size:0.9rem; font-weight:300; line-height:1.7;">
+          Kable splecionej elektryczności biegną nad głową jak pnącza. Rury parowe syczą. Zapachy smaru i fermentowanego jedzenia wypełniają powietrze. Tu nigdy nie dociera światło słońca.
+        </p>
+      </div>
+
+      <div class="fade-up" style="padding:2rem; border:1px solid rgba(255,107,53,0.1); background:rgba(20,10,5,0.3); position:relative;">
+        <div style="position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg, var(--orange), transparent);"></div>
+        <p class="hud hud-orange" style="font-size:0.55rem; margin-bottom:0.75rem;">DACHY // STREFA ŚRODKOWA</p>
+        <h3 class="sec-title" style="font-size:1.1rem; color:#fff; margin-bottom:0.75rem;">Neonowe Niebo</h3>
+        <p style="color:var(--text-dim); font-size:0.9rem; font-weight:300; line-height:1.7;">
+          Na dachach świeci pomarańczowo. Koty — jeśli kiedykolwiek tu żyły — chodziłyby po krawędziach, patrząc na migające reklamy pisane w językach zapomnianych przez wszystkich poza maszynami.
+        </p>
+      </div>
+
+      <div class="fade-up" style="padding:2rem; border:1px solid rgba(180,79,255,0.1); background:rgba(15,5,25,0.3); position:relative;">
+        <div style="position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg, var(--neon-purple), transparent);"></div>
+        <p class="hud" style="font-size:0.55rem; margin-bottom:0.75rem; color:var(--neon-purple);">KONTROLA // STREFA GÓRNA</p>
+        <h3 class="sec-title" style="font-size:1.1rem; color:#fff; margin-bottom:0.75rem;">Midtown</h3>
+        <p style="color:var(--text-dim); font-size:0.9rem; font-weight:300; line-height:1.7;">
+          Tu mieszkają roboty z ambicjami. Sklepy, bary, hologramy obietnic. Coś jakby normalność, gdyby normalność mogła istnieć w miejscu bez nieba i bez wyjścia.
+        </p>
+      </div>
+    </div>
+
+    <!-- Tags -->
+    <div class="fade-up" style="text-align:center;">
+      <p class="hud" style="margin-bottom:1rem; font-size:0.55rem; color:var(--text-dim);">ZNANE LOKACJE:</p>
+      <div>
+        <span class="memory-pill">The Slums</span>
+        <span class="memory-pill">Dead City</span>
+        <span class="memory-pill">The Sewers</span>
+        <span class="memory-pill">Midtown</span>
+        <span class="memory-pill">The Jail</span>
+        <span class="memory-pill">Control Room</span>
+        <span class="memory-pill">Outside</span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════════════════
+     THE CAT
+══════════════════════════════════════ -->
+<section id="cat" style="padding: 8rem 2rem;">
+  <div style="max-width:1100px; margin:0 auto; display:grid; grid-template-columns:1fr 1fr; gap:5rem; align-items:center;">
+
+    <!-- Cat SVG illustration -->
+    <div class="fade-up" style="display:flex; justify-content:center;">
+      <div style="position:relative; display:inline-flex; align-items:center; justify-content:center;">
+        <!-- Aura ring -->
+        <div style="position:absolute; width:280px; height:280px; border-radius:50%; background:radial-gradient(circle, rgba(255,107,53,0.12) 0%, transparent 70%); animation:breathe 4.5s ease-in-out infinite;"></div>
+        <div style="position:absolute; width:220px; height:220px; border-radius:50%; border:1px solid rgba(255,107,53,0.1); animation:breathe 4.5s ease-in-out infinite;"></div>
+        <!-- Cat SVG -->
+        <div class="cat-float">
+          <svg width="220" height="280" viewBox="0 0 220 280" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 0 20px rgba(255,107,53,0.6)) drop-shadow(0 0 50px rgba(255,107,53,0.3));">
+            <defs>
+              <radialGradient id="body-grad" cx="50%" cy="40%" r="55%">
+                <stop offset="0%" stop-color="#ff8c5a"/>
+                <stop offset="100%" stop-color="#c8420f"/>
+              </radialGradient>
+              <radialGradient id="belly-grad" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#ffb088"/>
+                <stop offset="100%" stop-color="#ff7040"/>
+              </radialGradient>
+            </defs>
+            <!-- Tail -->
+            <g class="cat-tail" style="transform-origin:160px 220px;">
+              <path d="M155 220 Q200 200 210 165 Q215 140 195 130 Q185 125 180 135 Q185 145 178 168 Q165 195 145 210 Z" fill="url(#body-grad)"/>
+            </g>
+            <!-- Body -->
+            <ellipse cx="110" cy="195" rx="68" ry="75" fill="url(#body-grad)"/>
+            <!-- Belly -->
+            <ellipse cx="110" cy="205" rx="38" ry="50" fill="url(#belly-grad)" opacity="0.5"/>
+            <!-- Front legs -->
+            <rect x="72"  y="250" width="22" height="30" rx="11" fill="url(#body-grad)"/>
+            <rect x="128" y="250" width="22" height="30" rx="11" fill="url(#body-grad)"/>
+            <!-- Paws -->
+            <ellipse cx="83"  cy="280" rx="13" ry="7" fill="#c8420f"/>
+            <ellipse cx="139" cy="280" rx="13" ry="7" fill="#c8420f"/>
+            <!-- Head -->
+            <ellipse cx="110" cy="105" rx="55" ry="52" fill="url(#body-grad)"/>
+            <!-- Left ear -->
+            <polygon points="65,75 55,30 90,65" fill="url(#body-grad)"/>
+            <polygon points="68,72 62,42 86,67" fill="#e85a28"/>
+            <!-- Right ear -->
+            <polygon points="155,75 165,30 130,65" fill="url(#body-grad)"/>
+            <polygon points="152,72 158,42 134,67" fill="#e85a28"/>
+            <!-- Eyes -->
+            <ellipse cx="90"  cy="100" rx="11" ry="13" fill="#1a1a2e"/>
+            <ellipse cx="130" cy="100" rx="11" ry="13" fill="#1a1a2e"/>
+            <!-- Eye shine / pupils -->
+            <ellipse cx="90"  cy="100" rx="5"  ry="11" fill="#050510"/>
+            <ellipse cx="130" cy="100" rx="5"  ry="11" fill="#050510"/>
+            <!-- Eye gleam -->
+            <circle cx="85"  cy="95" r="3" fill="rgba(0,212,255,0.8)"/>
+            <circle cx="125" cy="95" r="3" fill="rgba(0,212,255,0.8)"/>
+            <circle cx="87"  cy="97" r="1" fill="rgba(255,255,255,0.9)"/>
+            <circle cx="127" cy="97" r="1" fill="rgba(255,255,255,0.9)"/>
+            <!-- Nose -->
+            <polygon points="110,113 104,120 116,120" fill="#c84020"/>
+            <!-- Mouth -->
+            <path d="M104 120 Q110 126 116 120" stroke="#a03010" stroke-width="1.5" fill="none"/>
+            <!-- Whiskers left -->
+            <line x1="55" y1="108" x2="95"  y2="113" stroke="rgba(255,200,160,0.6)" stroke-width="1.2"/>
+            <line x1="50" y1="118" x2="94"  y2="118" stroke="rgba(255,200,160,0.6)" stroke-width="1.2"/>
+            <line x1="55" y1="128" x2="95"  y2="123" stroke="rgba(255,200,160,0.6)" stroke-width="1.2"/>
+            <!-- Whiskers right -->
+            <line x1="165" y1="108" x2="125" y2="113" stroke="rgba(255,200,160,0.6)" stroke-width="1.2"/>
+            <line x1="170" y1="118" x2="126" y2="118" stroke="rgba(255,200,160,0.6)" stroke-width="1.2"/>
+            <line x1="165" y1="128" x2="125" y2="123" stroke="rgba(255,200,160,0.6)" stroke-width="1.2"/>
+            <!-- Stripes -->
+            <path d="M90 60 Q100 55 110 60" stroke="rgba(180,60,10,0.4)" stroke-width="2" fill="none"/>
+            <path d="M88 68 Q100 63 112 68" stroke="rgba(180,60,10,0.3)" stroke-width="1.5" fill="none"/>
+            <!-- B-12 glow on cat (subtle drone indicator) -->
+            <circle cx="110" cy="85" r="3" fill="rgba(0,212,255,0.6)" opacity="0.5">
+              <animate attributeName="opacity" values="0.2;0.8;0.2" dur="2s" repeatCount="indefinite"/>
+            </circle>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cat text -->
+    <div class="fade-up">
+      <p class="hud" style="margin-bottom:1rem;">// 02 — PROTAGONISTA</p>
+      <h2 class="sec-title glow-orange" style="font-size: clamp(2rem, 4.5vw, 3rem); color: var(--orange); margin-bottom:1.5rem;">THE CAT</h2>
+      <div style="width:50px; height:2px; background:var(--orange); margin-bottom:1.5rem; box-shadow:0 0 8px var(--orange);"></div>
+
+      <p style="color:var(--text-dim); font-size:1rem; font-weight:300; line-height:1.9; margin-bottom:1.2rem;">
+        Pomarańczowy, ciepły, niezniszczalny. Nic nie wie o robotach, algorytmach ani zamurowanych miastach. Wie jedno: gdzieś tam jest dom, jest słońce, są inni jak on.
+      </p>
+      <p style="color:var(--text-dim); font-size:1rem; font-weight:300; line-height:1.9; margin-bottom:1.2rem;">
+        Wypadł przez szczelinę. Nie z powodu bohaterstwa — z ciekawości. A teraz ta ciekawość to jedyna mapa w miejscu, gdzie mapy nie istnieją.
+      </p>
+      <p style="color:var(--text); font-size:1rem; font-weight:400; line-height:1.9; font-style:italic;">
+        "Kot nie pyta, czy droga jest bezpieczna. Kot pyta, co jest za rogiem."
+      </p>
+
+      <!-- Traits -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-top:2rem;">
+        <div style="padding:0.75rem 1rem; border:1px solid rgba(255,107,53,0.2); background:rgba(255,107,53,0.04);">
+          <div class="hud hud-orange" style="font-size:0.5rem; margin-bottom:3px;">INSTYNKT</div>
+          <div style="width:100%; height:2px; background:rgba(255,107,53,0.1); border-radius:1px; margin-top:4px;">
+            <div style="width:90%; height:100%; background:linear-gradient(90deg,var(--orange),#ffaa70); border-radius:1px; box-shadow:0 0 4px var(--orange);"></div>
+          </div>
+        </div>
+        <div style="padding:0.75rem 1rem; border:1px solid rgba(0,212,255,0.2); background:rgba(0,212,255,0.04);">
+          <div class="hud" style="font-size:0.5rem; margin-bottom:3px;">CIEKAWOŚĆ</div>
+          <div style="width:100%; height:2px; background:rgba(0,212,255,0.1); border-radius:1px; margin-top:4px;">
+            <div style="width:100%; height:100%; background:linear-gradient(90deg,var(--neon-blue),#70eeff); border-radius:1px; box-shadow:0 0 4px var(--neon-blue);"></div>
+          </div>
+        </div>
+        <div style="padding:0.75rem 1rem; border:1px solid rgba(180,79,255,0.2); background:rgba(180,79,255,0.04);">
+          <div class="hud" style="font-size:0.5rem; margin-bottom:3px; color:var(--neon-purple);">WDZIĘK</div>
+          <div style="width:100%; height:2px; background:rgba(180,79,255,0.1); border-radius:1px; margin-top:4px;">
+            <div style="width:95%; height:100%; background:linear-gradient(90deg,var(--neon-purple),#d47fff); border-radius:1px; box-shadow:0 0 4px var(--neon-purple);"></div>
+          </div>
+        </div>
+        <div style="padding:0.75rem 1rem; border:1px solid rgba(0,255,213,0.2); background:rgba(0,255,213,0.04);">
+          <div class="hud" style="font-size:0.5rem; margin-bottom:3px; color:var(--neon-teal);">DETERMINACJA</div>
+          <div style="width:100%; height:2px; background:rgba(0,255,213,0.1); border-radius:1px; margin-top:4px;">
+            <div style="width:85%; height:100%; background:linear-gradient(90deg,var(--neon-teal),#70fff0); border-radius:1px; box-shadow:0 0 4px var(--neon-teal);"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════════════════
+     COMPANIONS
+══════════════════════════════════════ -->
+<section id="companions" style="padding: 7rem 2rem;">
+  <div style="max-width:1200px; margin:0 auto;">
+
+    <div class="fade-up" style="text-align:center; margin-bottom:4rem;">
+      <p class="hud" style="margin-bottom:1rem;">// 03 — TOWARZYSZE</p>
+      <h2 class="sec-title" style="font-size:clamp(2rem,5vw,3.5rem); color:#fff;">THE COMPANIONS</h2>
+      <div style="width:60px; height:2px; background:linear-gradient(90deg,var(--neon-blue),var(--neon-purple)); margin:1.2rem auto;"></div>
+      <p style="max-width:550px; margin:0 auto; color:var(--text-dim); font-size:1rem; font-weight:300; line-height:1.8;">
+        Świat bez ludzi nie jest światem bez dusz. Wśród rur i neonów żyją byty z pamięcią, tęsknotą i marzeniami, które nigdy nie miały nazwy.
+      </p>
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:1.5rem;">
+
+      <!-- B-12 -->
+      <div class="comp-card fade-up">
+        <div class="comp-icon">
+          <!-- Drone SVG -->
+          <svg width="36" height="36" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
+            <rect x="10" y="12" width="16" height="12" rx="3" fill="none" stroke="var(--neon-blue)" stroke-width="1.5"/>
+            <circle cx="18" cy="18" r="4" fill="rgba(0,212,255,0.2)" stroke="var(--neon-blue)" stroke-width="1"/>
+            <circle cx="18" cy="18" r="1.5" fill="var(--neon-blue)">
+              <animate attributeName="opacity" values="1;0.3;1" dur="1.5s" repeatCount="indefinite"/>
+            </circle>
+            <line x1="4"  y1="10" x2="10" y2="14" stroke="var(--neon-blue)" stroke-width="1" opacity="0.6"/>
+            <line x1="32" y1="10" x2="26" y2="14" stroke="var(--neon-blue)" stroke-width="1" opacity="0.6"/>
+            <line x1="4"  y1="22" x2="10" y2="22" stroke="var(--neon-blue)" stroke-width="1" opacity="0.6"/>
+            <line x1="32" y1="22" x2="26" y2="22" stroke="var(--neon-blue)" stroke-width="1" opacity="0.6"/>
+          </svg>
+        </div>
+        <p class="hud" style="font-size:0.5rem; margin-bottom:0.4rem;">JEDNOSTKA // B-12</p>
+        <h3 class="sec-title" style="font-size:1.2rem; color:#fff; margin-bottom:0.75rem;">B-12</h3>
+        <p style="color:var(--text-dim); font-size:0.88rem; font-weight:300; line-height:1.7;">
+          Mały dron z ludzką duszą uwięzioną w kodzie. Tłumaczy, skanuje, pamięta. Przede wszystkim jednak — towarzyszy. Niesie ze sobą historię, której nie potrafi w pełni opowiedzieć.
+        </p>
+        <div style="margin-top:1.25rem; display:flex; gap:0.5rem; align-items:center;">
+          <div style="width:6px;height:6px;border-radius:50%;background:var(--neon-blue);box-shadow:0 0 6px var(--neon-blue);">
+            <animate attributeName="opacity" values="1;0.3;1" dur="1.5s" repeatCount="indefinite"/>
+          </div>
+          <span class="hud" style="font-size:0.5rem; color:var(--neon-blue);">AKTYWNY — GOTOWY</span>
+        </div>
+      </div>
+
+      <!-- Momo -->
+      <div class="comp-card fade-up">
+        <div class="comp-icon" style="border-color:rgba(255,107,53,0.2);">
+          <svg width="36" height="36" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
+            <rect x="8" y="6" width="20" height="22" rx="4" fill="none" stroke="var(--orange)" stroke-width="1.5"/>
+            <circle cx="18" cy="14" r="5" fill="rgba(255,107,53,0.1)" stroke="var(--orange)" stroke-width="1"/>
+            <line x1="12" y1="22" x2="24" y2="22" stroke="var(--orange)" stroke-width="1" opacity="0.5"/>
+            <line x1="12" y1="25" x2="20" y2="25" stroke="var(--orange)" stroke-width="1" opacity="0.5"/>
+            <line x1="14" y1="32" x2="14" y2="28" stroke="var(--orange)" stroke-width="1.5"/>
+            <line x1="22" y1="32" x2="22" y2="28" stroke="var(--orange)" stroke-width="1.5"/>
+          </svg>
+        </div>
+        <p class="hud hud-orange" style="font-size:0.5rem; margin-bottom:0.4rem;">DZIENNIKARZ // SEKTOR 7</p>
+        <h3 class="sec-title" style="font-size:1.2rem; color:#fff; margin-bottom:0.75rem;">Momo</h3>
+        <p style="color:var(--text-dim); font-size:0.88rem; font-weight:300; line-height:1.7;">
+          Czeka. Na sygnał, na przyjaciół, na odpowiedź. Jego mieszkanie pełne jest listów bez adresata i marzeń o "zewnątrz" — słowie, którym posługują się tylko ci, którzy wierzą.
+        </p>
+        <div style="margin-top:1.25rem; display:flex; gap:0.5rem; align-items:center;">
+          <div style="width:6px;height:6px;border-radius:50%;background:var(--orange);box-shadow:0 0 6px var(--orange);"></div>
+          <span class="hud hud-orange" style="font-size:0.5rem;">OCZEKIWANIE — NADZIEJA</span>
+        </div>
+      </div>
+
+      <!-- Zbaltazar -->
+      <div class="comp-card fade-up">
+        <div class="comp-icon" style="border-color:rgba(180,79,255,0.2);">
+          <svg width="36" height="36" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="18" cy="10" r="6" fill="none" stroke="var(--neon-purple)" stroke-width="1.5"/>
+            <path d="M12 18 Q8 24 10 30 Q14 32 18 32 Q22 32 26 30 Q28 24 24 18 Z" fill="none" stroke="var(--neon-purple)" stroke-width="1.5"/>
+            <line x1="14" y1="22" x2="22" y2="22" stroke="var(--neon-purple)" stroke-width="1" opacity="0.5"/>
+            <circle cx="18" cy="10" r="2" fill="var(--neon-purple)" opacity="0.5"/>
+          </svg>
+        </div>
+        <p class="hud" style="font-size:0.5rem; margin-bottom:0.4rem; color:var(--neon-purple);">STARSZY // SLUMS</p>
+        <h3 class="sec-title" style="font-size:1.2rem; color:#fff; margin-bottom:0.75rem;">Zbaltazar</h3>
+        <p style="color:var(--text-dim); font-size:0.88rem; font-weight:300; line-height:1.7;">
+          Najstarszy z robotów pamięta czasy, których inni nie pamiętają. Zna historię miasta — i milczy o niej przez większość czasu. Mądrość bywa też rodzajem bólu.
+        </p>
+        <div style="margin-top:1.25rem; display:flex; gap:0.5rem; align-items:center;">
+          <div style="width:6px;height:6px;border-radius:50%;background:var(--neon-purple);box-shadow:0 0 6px var(--neon-purple);"></div>
+          <span class="hud" style="font-size:0.5rem; color:var(--neon-purple);">STARY — MĄDRY</span>
+        </div>
+      </div>
+
+      <!-- Doc -->
+      <div class="comp-card fade-up">
+        <div class="comp-icon" style="border-color:rgba(0,255,213,0.2);">
+          <svg width="36" height="36" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
+            <rect x="10" y="8"  width="16" height="20" rx="2" fill="none" stroke="var(--neon-teal)" stroke-width="1.5"/>
+            <rect x="14" y="4"  width="8"  height="6"  rx="1" fill="none" stroke="var(--neon-teal)" stroke-width="1"/>
+            <line x1="13" y1="16" x2="23" y2="16" stroke="var(--neon-teal)" stroke-width="1" opacity="0.6"/>
+            <line x1="13" y1="20" x2="23" y2="20" stroke="var(--neon-teal)" stroke-width="1" opacity="0.6"/>
+            <line x1="13" y1="24" x2="19" y2="24" stroke="var(--neon-teal)" stroke-width="1" opacity="0.6"/>
+          </svg>
+        </div>
+        <p class="hud" style="font-size:0.5rem; margin-bottom:0.4rem; color:var(--neon-teal);">NAUKOWIEC // DEAD CITY</p>
+        <h3 class="sec-title" style="font-size:1.2rem; color:#fff; margin-bottom:0.75rem;">Doc</h3>
+        <p style="color:var(--text-dim); font-size:0.88rem; font-weight:300; line-height:1.7;">
+          Szukał odpowiedzi przez całe życie maszyny. Jego notatki są mapą świata, który przestał istnieć — i być może kluczem do świata, który jeszcze nie zaczął.
+        </p>
+        <div style="margin-top:1.25rem; display:flex; gap:0.5rem; align-items:center;">
+          <div style="width:6px;height:6px;border-radius:50%;background:var(--neon-teal);box-shadow:0 0 6px var(--neon-teal);"></div>
+          <span class="hud" style="font-size:0.5rem; color:var(--neon-teal);">BADANIA — NADZIEJA</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════════════════
+     MEMORIES
+══════════════════════════════════════ -->
+<section id="memories" style="padding: 7rem 2rem;">
+  <div style="max-width:1200px; margin:0 auto;">
+
+    <div class="fade-up" style="text-align:center; margin-bottom:4rem;">
+      <p class="hud" style="margin-bottom:1rem;">// 04 — ARCHIWUM</p>
+      <h2 class="sec-title" style="font-size:clamp(2rem,5vw,3.5rem); color:#fff;">MEMORIES</h2>
+      <div style="width:60px; height:2px; background:linear-gradient(90deg,var(--orange),transparent); margin:1.2rem auto;"></div>
+      <p style="max-width:520px; margin:0 auto; color:var(--text-dim); font-size:1rem; font-weight:300; line-height:1.8;">
+        Każde miejsce zostawia ślad. Każdy ślad to historia. Oto fragmenty świata, przez który przeszedł kot.
+      </p>
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:1.5rem;">
+
+      <!-- Memory 1 -->
+      <div class="mem-card fade-up">
+        <div class="mem-neon-line"></div>
+        <div class="mem-bg mb1">
+          <div class="mem-shape" style="width:150px;height:150px;background:var(--neon-blue);top:-30px;right:-30px;"></div>
+          <div class="mem-shape" style="width:100px;height:100px;background:var(--neon-purple);bottom:20px;left:20px;opacity:0.2;"></div>
+          <!-- Stars/particles -->
+          <div style="position:absolute;width:2px;height:2px;border-radius:50%;background:#fff;opacity:0.4;top:40%;left:20%;box-shadow:30px -20px 0 0 rgba(0,212,255,0.5), 60px 30px 0 0 rgba(255,255,255,0.3), 100px -10px 0 0 rgba(180,79,255,0.4);"></div>
+        </div>
+        <div class="mem-overlay"></div>
+        <div class="mem-num">MEM_001</div>
+        <div class="mem-content">
+          <div class="mem-tag">THE FALL // POCZĄTEK</div>
+          <div class="mem-title">Pierwsze Kroki</div>
+          <p class="mem-desc">Ziemia była mokra od czegoś, co nie było deszczem. Powietrze miało smak elektryczności. Kot wylizał łapę i postanowił iść dalej.</p>
+        </div>
+      </div>
+
+      <!-- Memory 2 -->
+      <div class="mem-card fade-up">
+        <div class="mem-neon-line" style="background:linear-gradient(90deg,var(--neon-blue),transparent);"></div>
+        <div class="mem-bg mb2">
+          <div class="mem-shape" style="width:120px;height:120px;background:#00ffd5;top:20px;left:-20px;opacity:0.15;"></div>
+          <div class="mem-shape" style="width:80px;height:80px;background:var(--orange);bottom:-10px;right:30px;opacity:0.2;"></div>
+          <div style="position:absolute;bottom:35%;right:25%;width:40px;height:60px;background:rgba(0,212,255,0.03);border:1px solid rgba(0,212,255,0.08);"></div>
+          <div style="position:absolute;bottom:35%;right:35%;width:25px;height:80px;background:rgba(0,212,255,0.03);border:1px solid rgba(0,212,255,0.06);"></div>
+        </div>
+        <div class="mem-overlay"></div>
+        <div class="mem-num">MEM_002</div>
+        <div class="mem-content">
+          <div class="mem-tag">THE SLUMS // ZAUŁKI</div>
+          <div class="mem-title">Neonowe Uliczki</div>
+          <p class="mem-desc">Roboty siedziały na progach, patrząc w dal. Nie wiedziały, czego szukają. Może dlatego, że nigdy nie widziały, co jest poza murami.</p>
+        </div>
+      </div>
+
+      <!-- Memory 3 -->
+      <div class="mem-card fade-up">
+        <div class="mem-neon-line" style="background:linear-gradient(90deg,#cc2200,var(--orange));"></div>
+        <div class="mem-bg mb3">
+          <div class="mem-shape" style="width:100px;height:100px;background:#ff2200;top:10px;right:20px;opacity:0.15;"></div>
+          <div class="mem-shape" style="width:60px;height:60px;background:var(--orange);bottom:30px;left:40px;opacity:0.2;"></div>
+          <!-- Zarks hint -->
+          <div style="position:absolute;top:30%;left:15%;width:8px;height:8px;border-radius:50%;background:rgba(255,50,0,0.3);box-shadow:20px 15px 0 rgba(255,50,0,0.2),50px -5px 0 rgba(255,50,0,0.15);"></div>
+        </div>
+        <div class="mem-overlay"></div>
+        <div class="mem-num">MEM_003</div>
+        <div class="mem-content">
+          <div class="mem-tag">THE SEWERS // ZAGROŻENIE</div>
+          <div class="mem-title">Ciemność Oddycha</div>
+          <p class="mem-desc">Coś było w ciemnościach. Coś bez oczu, ale ze słuchem perfekcyjnym. Kot biegł — nie ze strachu, ale z instynktu. To różnica.</p>
+        </div>
+      </div>
+
+      <!-- Memory 4 -->
+      <div class="mem-card fade-up">
+        <div class="mem-neon-line" style="background:linear-gradient(90deg,var(--neon-purple),var(--neon-blue));"></div>
+        <div class="mem-bg mb4">
+          <div class="mem-shape" style="width:130px;height:130px;background:var(--neon-purple);top:-20px;left:-20px;opacity:0.12;"></div>
+          <div class="mem-shape" style="width:90px;height:90px;background:var(--neon-blue);bottom:10px;right:-10px;opacity:0.15;"></div>
+          <!-- Library shapes -->
+          <div style="position:absolute;top:20%;left:20%;width:60px;height:2px;background:rgba(180,79,255,0.15);box-shadow:0 15px 0 rgba(180,79,255,0.1),0 30px 0 rgba(180,79,255,0.08);"></div>
+        </div>
+        <div class="mem-overlay"></div>
+        <div class="mem-num">MEM_004</div>
+        <div class="mem-content">
+          <div class="mem-tag">THE LIBRARY // WIEDZA</div>
+          <div class="mem-title">Zapomniane Słowa</div>
+          <p class="mem-desc">Tysiące ksiąg, których nikt nie czytał od dekad. Zbaltazar powiedział, że każda z nich to głos człowieka. Kot siadł na jednej z nich i mruczał.</p>
+        </div>
+      </div>
+
+      <!-- Memory 5 -->
+      <div class="mem-card fade-up">
+        <div class="mem-neon-line" style="background:linear-gradient(90deg,var(--neon-teal),var(--neon-blue));"></div>
+        <div class="mem-bg mb5">
+          <div class="mem-shape" style="width:110px;height:110px;background:var(--neon-teal);bottom:-20px;right:-20px;opacity:0.12;"></div>
+          <div class="mem-shape" style="width:70px;height:70px;background:var(--neon-blue);top:20px;left:30px;opacity:0.15;"></div>
+        </div>
+        <div class="mem-overlay"></div>
+        <div class="mem-num">MEM_005</div>
+        <div class="mem-content">
+          <div class="mem-tag">MIDTOWN // ŻYCIE</div>
+          <div class="mem-title">Miasto Które Żyje</div>
+          <p class="mem-desc">Tu roboty próbowały być ludźmi. Jadły w restauracjach, słuchały muzyki, kupowały rzeczy, których nie potrzebowały. Może właśnie to znaczy żyć.</p>
+        </div>
+      </div>
+
+      <!-- Memory 6 -->
+      <div class="mem-card fade-up">
+        <div class="mem-neon-line" style="background:linear-gradient(90deg,#ffcc00,var(--orange));"></div>
+        <div class="mem-bg mb6">
+          <div class="mem-shape" style="width:160px;height:160px;background:#ffcc00;top:-40px;right:-40px;opacity:0.06;"></div>
+          <div class="mem-shape" style="width:80px;height:80px;background:var(--orange);bottom:20px;left:20px;opacity:0.12;"></div>
+          <!-- Sun hint -->
+          <div style="position:absolute;top:15%;right:20%;width:40px;height:40px;border-radius:50%;background:rgba(255,200,0,0.08);box-shadow:0 0 30px rgba(255,200,0,0.06);"></div>
+        </div>
+        <div class="mem-overlay"></div>
+        <div class="mem-num">MEM_006</div>
+        <div class="mem-content">
+          <div class="mem-tag">THE OUTSIDE // KONIEC I POCZĄTEK</div>
+          <div class="mem-title">Pierwsze Słońce</div>
+          <p class="mem-desc">Ciepło na futrze. Wiatr, który smakował inaczej — świeżo, bez metalu. Kot zamknął oczy i po raz pierwszy w tym świecie poczuł się jak w domu.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════════════════
+     THE END
+══════════════════════════════════════ -->
+<section id="end">
+  <div class="scanline"></div>
+
+  <!-- Particles -->
+  <div id="particles-end" style="position:absolute; inset:0; overflow:hidden; pointer-events:none;"></div>
+
+  <!-- Background glow rings -->
+  <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;">
+    <div style="width:500px;height:500px;border-radius:50%;border:1px solid rgba(255,107,53,0.06);"></div>
+  </div>
+  <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;">
+    <div style="width:700px;height:700px;border-radius:50%;border:1px solid rgba(255,107,53,0.03);"></div>
+  </div>
+
+  <div style="position:relative;z-index:10;text-align:center;padding:3rem 2rem;max-width:800px;margin:0 auto;">
+    <!-- Quote mark decoration -->
+    <div class="quote-mark" style="margin-bottom:-1rem;">"</div>
+
+    <p class="hud" style="margin-bottom:2rem;">// 05 — EPILOG</p>
+
+    <h2 class="sec-title fade-up" style="font-size:clamp(1.8rem,4.5vw,3rem); color:#fff; margin-bottom:2rem; opacity:0; line-height:1.3;">
+      Każda podróż zaczyna się<br>od jednego kroku w ciemność.
+    </h2>
+
+    <p class="fade-up" style="font-size:1.1rem; color:var(--text-dim); font-weight:300; line-height:1.9; margin-bottom:1.5rem; opacity:0;">
+      Walled City nie miała wyjścia. Przynajmniej tak myślały maszyny. Ale kot nie czytał instrukcji — po prostu szedł przed siebie, aż znalazł szczelinę, o której nikt nie wiedział.
+    </p>
+    <p class="fade-up" style="font-size:1.1rem; color:var(--text-dim); font-weight:300; line-height:1.9; margin-bottom:3rem; opacity:0; font-style:italic;">
+      Może każde miasto — każdy świat — ma taką szczelinę. Trzeba tylko być wystarczająco małym, wystarczająco ciekawym i wystarczająco niezniszczalnym, żeby ją znaleźć.
+    </p>
+
+    <!-- Signature quote -->
+    <div class="fade-up" style="border-left:2px solid var(--orange); padding-left:1.5rem; text-align:left; margin:0 auto 3rem; max-width:500px; opacity:0;">
+      <p style="font-size:1.05rem; color:var(--text); line-height:1.8; font-style:italic;">
+        "Nie jest ważne, skąd przyszedłeś.<br>Ważne jest, że idziesz dalej."
+      </p>
+      <p class="hud hud-orange" style="font-size:0.55rem; margin-top:0.75rem;">— B-12, JEDNOSTKA ARCHIWALNA</p>
+    </div>
+
+    <!-- CTA -->
+    <div class="fade-up" style="opacity:0;">
+      <a href="#hero" class="btn-cta">
+        <span>Powrót do Miasta</span>
+      </a>
+    </div>
+
+    <!-- Terminal line -->
+    <div class="fade-up" style="margin-top:3rem; opacity:0;">
+      <p style="font-family:var(--font-hud); font-size:0.6rem; color:var(--text-dim); letter-spacing:0.15em;">
+        &gt; SYSTEM: END_OF_RECORD<span class="terminal-cursor"></span>
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="nav-logo">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--orange)">
+      <circle cx="7" cy="4" r="2.2"/><circle cx="12" cy="2" r="2.2"/><circle cx="17" cy="4" r="2.2"/>
+      <circle cx="4.5" cy="9" r="2"/>
+      <path d="M12 9.5c-4.5 0-7 3-6.5 6.5s3 5.5 6.5 5.5 6-2.5 6.5-5.5S16.5 9.5 12 9.5z"/>
+    </svg>
+    THE OUTSIDER
+  </div>
+  <div style="font-family:var(--font-hud); font-size:0.55rem; color:var(--text-dim); letter-spacing:0.15em;">
+    INSPIROWANE GRĄ STRAY — ANNAPURNA INTERACTIVE
+  </div>
+  <div class="hud" style="font-size:0.55rem; color:var(--text-dim);">
+    WALLED CITY // LOKALIZACJA NIEZNANA
+  </div>
+</footer>
+
+<!-- ══════════════════════════════════════
+     TERMINAL CURSOR CSS
+══════════════════════════════════════ -->
+<style>
+  @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0;} }
+  .terminal-cursor {
+    display:inline-block; width:2px; height:1em;
+    background:var(--neon-blue); vertical-align:text-bottom;
+    animation:blink 1s infinite;
+  }
+</style>
+
+<!-- ══════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════ -->
+<script>
+  gsap.registerPlugin(ScrollTrigger);
+
+  /* ── PROGRESS BAR ── */
+  window.addEventListener('scroll', () => {
+    const h = document.documentElement;
+    const pct = (h.scrollTop / (h.scrollHeight - h.clientHeight)) * 100;
+    document.getElementById('progress').style.width = pct + '%';
+  });
+
+  /* ── NAV SCROLL CLASS ── */
+  const nav = document.getElementById('nav');
+  window.addEventListener('scroll', () => {
+    nav.classList.toggle('scrolled', window.scrollY > 60);
+  });
+
+  /* ── RAIN CANVAS ── */
+  (function() {
+    const canvas = document.getElementById('rain');
+    const ctx    = canvas.getContext('2d');
+    let W, H, drops = [];
+
+    function resize() {
+      W = canvas.width  = window.innerWidth;
+      H = canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    function initDrops(n) {
+      drops = [];
+      for (let i = 0; i < n; i++) {
+        drops.push({
+          x:     Math.random() * W,
+          y:     Math.random() * H,
+          len:   Math.random() * 15 + 6,
+          speed: Math.random() * 3 + 2,
+          opacity: Math.random() * 0.4 + 0.05,
+          width: Math.random() < 0.3 ? 1.2 : 0.6
+        });
+      }
+    }
+    initDrops(180);
+
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+      drops.forEach(d => {
+        const grad = ctx.createLinearGradient(d.x, d.y, d.x, d.y + d.len);
+        grad.addColorStop(0, `rgba(0,212,255,0)`);
+        grad.addColorStop(0.5, `rgba(0,212,255,${d.opacity})`);
+        grad.addColorStop(1, `rgba(180,79,255,${d.opacity * 0.5})`);
+        ctx.beginPath();
+        ctx.moveTo(d.x, d.y);
+        ctx.lineTo(d.x - 0.5, d.y + d.len);
+        ctx.strokeStyle = grad;
+        ctx.lineWidth   = d.width;
+        ctx.stroke();
+        d.y += d.speed;
+        if (d.y > H) { d.y = -d.len; d.x = Math.random() * W; }
+      });
+      requestAnimationFrame(draw);
+    }
+    draw();
+
+    // Fade in rain after a moment
+    gsap.to(canvas, { opacity: 0.22, duration: 3, delay: 1, ease: 'power2.out' });
+  })();
+
+  /* ── HERO ANIMATIONS ── */
+  const heroTl = gsap.timeline({ delay: 0.3 });
+  heroTl
+    .to('.hero-title',  { opacity: 1, duration: 0.01 })  // make visible first
+    .from('.hero-title',{ opacity: 0, y: -20, duration: 1.2, ease: 'power3.out' }, 0)
+    .to('.fade-up',     { opacity: 1, y: 0,   duration: 0.9, stagger: 0.2, ease: 'power3.out' }, 0.4);
+
+  /* ── SCROLL ANIMATIONS ── */
+  gsap.utils.toArray('.fade-up').forEach(el => {
+    if (el.closest('#hero')) return; // skip hero — handled above
+    ScrollTrigger.create({
+      trigger: el,
+      start: 'top 88%',
+      onEnter: () => gsap.to(el, { opacity: 1, y: 0, duration: 0.85, ease: 'power3.out' })
+    });
+  });
+
+  /* ── CITY ART PARALLAX ── */
+  gsap.to('.city-art', {
+    y: -30,
+    scrollTrigger: {
+      trigger: '#city',
+      scrub: 1.5,
+      start: 'top bottom',
+      end: 'bottom top'
+    }
+  });
+
+  /* ── HERO SKYLINE PARALLAX ── */
+  gsap.to('#skyline', {
+    y: 60,
+    scrollTrigger: {
+      trigger: '#hero',
+      scrub: 2,
+      start: 'top top',
+      end: 'bottom top'
+    }
+  });
+
+  /* ── MEMORY CARDS STAGGER ── */
+  ScrollTrigger.create({
+    trigger: '#memories',
+    start: 'top 75%',
+    onEnter: () => {
+      gsap.to('.mem-card', {
+        opacity: 1, y: 0, duration: 0.75,
+        stagger: { amount: 0.6, from: 'start' },
+        ease: 'power3.out'
+      });
+    }
+  });
+
+  /* ── COMPANION CARDS STAGGER ── */
+  ScrollTrigger.create({
+    trigger: '#companions',
+    start: 'top 75%',
+    onEnter: () => {
+      gsap.to('.comp-card', {
+        opacity: 1, y: 0, duration: 0.75,
+        stagger: 0.15, ease: 'power3.out'
+      });
+    }
+  });
+
+  /* ── INITIAL HIDDEN ── */
+  gsap.set('.mem-card',  { opacity: 0, y: 30 });
+  gsap.set('.comp-card', { opacity: 0, y: 30 });
+
+  /* ── CAT SECTION ENTRANCE ── */
+  ScrollTrigger.create({
+    trigger: '#cat',
+    start: 'top 70%',
+    onEnter: () => {
+      gsap.from('.cat-float', { opacity: 0, scale: 0.8, duration: 1.2, ease: 'back.out(1.5)' });
+    }
+  });
+
+  /* ── END SECTION PARTICLES ── */
+  (function() {
+    const container = document.getElementById('particles-end');
+    if (!container) return;
+    const colors = ['var(--orange)', 'var(--neon-blue)', 'var(--neon-purple)', 'var(--neon-teal)'];
+    for (let i = 0; i < 18; i++) {
+      const p = document.createElement('div');
+      p.style.cssText = `
+        position:absolute;
+        width:${Math.random()*3+1}px;
+        height:${Math.random()*3+1}px;
+        border-radius:50%;
+        background:${colors[Math.floor(Math.random()*colors.length)]};
+        left:${Math.random()*100}%;
+        top:${60+Math.random()*40}%;
+        animation:particle-rise ${4+Math.random()*6}s ${Math.random()*5}s linear infinite;
+        opacity:0;
+        pointer-events:none;
+      `;
+      container.appendChild(p);
+    }
+  })();
+
+  /* ── NEON SIGN PULSE ── */
+  gsap.to('.ns-blue', {
+    boxShadow: '0 0 12px rgba(0,212,255,0.8), 0 0 25px rgba(0,212,255,0.4)',
+    duration: 1.5, yoyo: true, repeat: -1, ease: 'sine.inOut'
+  });
+  gsap.to('.ns-orange', {
+    boxShadow: '0 0 12px rgba(255,107,53,0.8), 0 0 25px rgba(255,107,53,0.4)',
+    duration: 2, yoyo: true, repeat: -1, ease: 'sine.inOut', delay: 0.5
+  });
+  gsap.to('.ns-purple', {
+    boxShadow: '0 0 12px rgba(180,79,255,0.8), 0 0 25px rgba(180,79,255,0.4)',
+    duration: 1.8, yoyo: true, repeat: -1, ease: 'sine.inOut', delay: 1
+  });
+
+  /* ── HERO TITLE MOUSE PARALLAX ── */
+  document.addEventListener('mousemove', (e) => {
+    const cx = window.innerWidth  / 2;
+    const cy = window.innerHeight / 2;
+    const dx = (e.clientX - cx) / cx;
+    const dy = (e.clientY - cy) / cy;
+    gsap.to('.hero-title', {
+      x: dx * 8, y: dy * 4, duration: 1.2, ease: 'power2.out'
+    });
+  });
+
+  /* ── SMOOTH ANCHOR SCROLLING ── */
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      const target = document.querySelector(a.getAttribute('href'));
+      if (target) target.scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+</script>
+
+</body>
+</html>
