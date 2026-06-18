@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reverie</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Three.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <!-- GSAP + ScrollTrigger -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+
+  <!-- Lenis smooth scroll -->
+  <script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
+
+  <style>
+    /* ─── Base Reset ─────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:    #0a0e1a;
+      --indigo:  #0f1535;
+      --violet:  #1a1040;
+      --purple:  #2d1b69;
+      --amber:   #f59e0b;
+      --gold:    #d97706;
+      --rose:    #f43f5e;
+      --cream:   #fef3c7;
+      --muted:   #94a3b8;
+    }
+
+    html { scroll-behavior: auto; }
+
+    body {
+      background: var(--navy);
+      color: #e2e8f0;
+      font-family: 'Georgia', 'Times New Roman', serif;
+      overflow-x: hidden;
+      line-height: 1.75;
+    }
+
+    /* ─── Canvas ─────────────────────────────────────────────────── */
+    #bg-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* ─── Sections ───────────────────────────────────────────────── */
+    .section {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6rem 2rem;
+      overflow: hidden;
+    }
+
+    .section-inner {
+      max-width: 760px;
+      width: 100%;
+      text-align: center;
+    }
+
+    /* gradient overlays per section (over the canvas) */
+    .section::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    /* 1 — Opening */
+    #s-opening::before {
+      background: radial-gradient(ellipse 80% 80% at 50% 50%,
+        rgba(10,14,26,0.55) 0%,
+        rgba(10,14,26,0.92) 100%);
+    }
+
+    /* 2 — First Spark */
+    #s-spark::before {
+      background: linear-gradient(180deg,
+        rgba(10,14,26,0.97) 0%,
+        rgba(15,21,53,0.85) 40%,
+        rgba(29,27,80,0.90) 100%);
+    }
+
+    /* 3 — Into the Fog */
+    #s-fog::before {
+      background: linear-gradient(180deg,
+        rgba(15,21,53,0.88) 0%,
+        rgba(8,6,26,0.96) 60%,
+        rgba(4,4,16,0.98) 100%);
+    }
+
+    /* 4 — The Architecture */
+    #s-arch::before {
+      background: linear-gradient(180deg,
+        rgba(4,4,16,0.97) 0%,
+        rgba(10,14,26,0.88) 40%,
+        rgba(29,27,80,0.80) 100%);
+    }
+
+    /* 5 — The Glow */
+    #s-glow::before {
+      background: radial-gradient(ellipse 100% 100% at 50% 60%,
+        rgba(45,27,105,0.55) 0%,
+        rgba(10,14,26,0.90) 100%);
+    }
+
+    /* 6 — The Quiet After */
+    #s-quiet::before {
+      background: linear-gradient(180deg,
+        rgba(10,14,26,0.88) 0%,
+        rgba(10,14,26,0.97) 100%);
+    }
+
+    /* ─── Typography ─────────────────────────────────────────────── */
+    .eyebrow {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      color: var(--amber);
+      opacity: 0.85;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero-title {
+      font-size: clamp(4.5rem, 14vw, 10rem);
+      font-weight: 300;
+      letter-spacing: -0.025em;
+      line-height: 1;
+      background: linear-gradient(135deg, #e2e8f0 0%, var(--cream) 40%, var(--amber) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .section-title {
+      font-size: clamp(2rem, 6vw, 3.5rem);
+      font-weight: 300;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      margin-bottom: 2rem;
+      color: #e2e8f0;
+    }
+
+    .section-title .accent {
+      background: linear-gradient(90deg, var(--amber), #fbbf24);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .body-text {
+      font-size: clamp(1rem, 2.2vw, 1.2rem);
+      color: #94a3b8;
+      max-width: 600px;
+      margin: 0 auto;
+      line-height: 2;
+    }
+
+    .body-text em {
+      color: #cbd5e1;
+      font-style: italic;
+    }
+
+    /* ─── Opening extras ─────────────────────────────────────────── */
+    .hero-sub {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: clamp(0.8rem, 2vw, 1rem);
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      margin-top: 2rem;
+      font-weight: 300;
+    }
+
+    .scroll-cue {
+      position: absolute;
+      bottom: 2.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      opacity: 0.45;
+    }
+
+    .scroll-cue span {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 0.6rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .scroll-line {
+      width: 1px;
+      height: 3rem;
+      background: linear-gradient(to bottom, var(--amber), transparent);
+      animation: scrollPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes scrollPulse {
+      0%, 100% { opacity: 0.3; transform: scaleY(1); }
+      50%       { opacity: 0.9; transform: scaleY(1.2); }
+    }
+
+    /* ─── Light burst decoration ─────────────────────────────────── */
+    .light-burst {
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+      filter: blur(80px);
+      opacity: 0;
+    }
+
+    .burst-gold {
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, rgba(245,158,11,0.25) 0%, transparent 70%);
+      top: 20%; left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .burst-violet {
+      width: 600px; height: 300px;
+      background: radial-gradient(ellipse, rgba(139,92,246,0.20) 0%, transparent 70%);
+      bottom: 10%; right: -10%;
+    }
+
+    /* ─── Grid overlay for Architecture section ───────────────────── */
+    .grid-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0;
+      background-image:
+        linear-gradient(rgba(245,158,11,0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(245,158,11,0.06) 1px, transparent 1px);
+      background-size: 60px 60px;
+    }
+
+    /* ─── Glow pulse ring ────────────────────────────────────────── */
+    .glow-ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 1px solid rgba(245,158,11,0.15);
+      pointer-events: none;
+      opacity: 0;
+    }
+
+    .ring-1 { width: 300px; height: 300px; top: 50%; left: 50%; transform: translate(-50%,-50%); }
+    .ring-2 { width: 500px; height: 500px; top: 50%; left: 50%; transform: translate(-50%,-50%); }
+    .ring-3 { width: 700px; height: 700px; top: 50%; left: 50%; transform: translate(-50%,-50%); }
+
+    /* ─── Dividers ───────────────────────────────────────────────── */
+    .section-divider {
+      width: 40px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--amber), transparent);
+      margin: 2.5rem auto;
+      opacity: 0.6;
+    }
+
+    /* ─── Prompt input (section 6) ────────────────────────────────── */
+    .prompt-wrapper {
+      margin-top: 3rem;
+      position: relative;
+      max-width: 480px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .prompt-input {
+      width: 100%;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(245,158,11,0.25);
+      border-radius: 2px;
+      padding: 1rem 1.5rem;
+      color: #e2e8f0;
+      font-size: 0.95rem;
+      font-family: 'Georgia', serif;
+      letter-spacing: 0.03em;
+      outline: none;
+      transition: border-color 0.4s, box-shadow 0.4s, background 0.4s;
+      caret-color: var(--amber);
+    }
+
+    .prompt-input::placeholder {
+      color: rgba(148,163,184,0.45);
+      font-style: italic;
+    }
+
+    .prompt-input:focus {
+      border-color: rgba(245,158,11,0.65);
+      box-shadow: 0 0 32px rgba(245,158,11,0.12), inset 0 0 12px rgba(245,158,11,0.04);
+      background: rgba(255,255,255,0.07);
+    }
+
+    .prompt-hint {
+      margin-top: 0.75rem;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 0.6rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: rgba(148,163,184,0.4);
+      text-align: center;
+    }
+
+    /* ─── Animated words ─────────────────────────────────────────── */
+    .word-reveal span {
+      display: inline-block;
+      opacity: 0;
+      transform: translateY(30px);
+    }
+
+    /* ─── Progress bar ───────────────────────────────────────────── */
+    #progress-bar {
+      position: fixed;
+      top: 0; left: 0;
+      height: 1px;
+      background: linear-gradient(90deg, var(--amber), #fbbf24, var(--rose));
+      z-index: 100;
+      transform-origin: left;
+      transform: scaleX(0);
+    }
+
+    /* ─── Responsive ─────────────────────────────────────────────── */
+    @media (max-width: 640px) {
+      .section { padding: 5rem 1.5rem; }
+      .ring-1 { width: 200px; height: 200px; }
+      .ring-2 { width: 320px; height: 320px; }
+      .ring-3 { width: 440px; height: 440px; }
+      .burst-gold  { width: 250px; height: 250px; }
+      .burst-violet { width: 350px; height: 200px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Progress bar ──────────────────────────────────────────── -->
+  <div id="progress-bar"></div>
+
+  <!-- ── Three.js canvas ──────────────────────────────────────── -->
+  <canvas id="bg-canvas"></canvas>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SECTION 1 — OPENING
+  ════════════════════════════════════════════════════════════════ -->
+  <section id="s-opening" class="section">
+    <div class="light-burst burst-gold" id="opening-burst"></div>
+
+    <div class="section-inner">
+      <p class="eyebrow" id="opening-eyebrow">A cinematic journey</p>
+      <h1 class="hero-title" id="hero-title">Reverie</h1>
+      <p class="hero-sub" id="hero-sub">On making something real with an artificial mind</p>
+    </div>
+
+    <div class="scroll-cue">
+      <span>Scroll</span>
+      <div class="scroll-line"></div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SECTION 2 — THE FIRST SPARK
+  ════════════════════════════════════════════════════════════════ -->
+  <section id="s-spark" class="section">
+    <div class="light-burst burst-gold" style="top:30%;left:30%;width:350px;height:350px;"></div>
+
+    <div class="section-inner">
+      <p class="eyebrow spark-eyebrow">I — The First Spark</p>
+      <h2 class="section-title spark-title">
+        It begins with a<br><span class="accent">single sentence.</span>
+      </h2>
+      <div class="section-divider spark-divider"></div>
+      <p class="body-text spark-body">
+        You open a blank window. The cursor blinks — patient, indifferent,
+        infinite. You type something that feels half-formed, a whisper
+        dressed as instruction. <em>Make me something that doesn't exist yet.</em>
+        <br><br>
+        And the machine exhales. Not with breath, but with tokens —
+        probability cascading into meaning, pattern reaching toward light.
+        In that gap between your intention and the model's first word,
+        something entirely new is about to be born.
+      </p>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SECTION 3 — INTO THE FOG
+  ════════════════════════════════════════════════════════════════ -->
+  <section id="s-fog" class="section">
+    <div class="section-inner">
+      <p class="eyebrow fog-eyebrow">II — Into the Fog</p>
+      <h2 class="section-title fog-title">
+        Nothing is certain<br>in the <span class="accent">in-between.</span>
+      </h2>
+      <div class="section-divider fog-divider"></div>
+      <p class="body-text fog-body">
+        The first draft arrives like fog — present, but not yet solid.
+        You can't tell if it's genius or noise. You iterate.
+        You push harder. The model pushes back, gently,
+        in the only language it knows: more words.
+        <br><br>
+        <em>This is the uncertain hour.</em> The place where most things
+        stay unfinished, discarded to the void of closed tabs.
+        You feel the vertigo of authorship shared with something
+        that has no stake in the outcome — only in the shape of the sentence.
+      </p>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SECTION 4 — THE ARCHITECTURE
+  ════════════════════════════════════════════════════════════════ -->
+  <section id="s-arch" class="section">
+    <div class="grid-overlay" id="grid-overlay"></div>
+
+    <div class="section-inner">
+      <p class="eyebrow arch-eyebrow">III — The Architecture</p>
+      <h2 class="section-title arch-title">
+        Structure emerges<br>from <span class="accent">deliberate silence.</span>
+      </h2>
+      <div class="section-divider arch-divider"></div>
+      <p class="body-text arch-body">
+        You stop chasing output. You start designing constraint.
+        Each prompt becomes a blueprint — precise, intentional,
+        architectural. The model responds to clarity
+        with clarity of its own.
+        <br><br>
+        Lines appear where before there was only blur.
+        Hierarchy. Rhythm. The skeleton of something
+        that wants to stand on its own. <em>You are no longer
+        asking — you are building together.</em>
+        The collaboration becomes a kind of conversation
+        across the boundary of the real.
+      </p>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SECTION 5 — THE GLOW
+  ════════════════════════════════════════════════════════════════ -->
+  <section id="s-glow" class="section">
+    <div class="glow-ring ring-1" id="ring1"></div>
+    <div class="glow-ring ring-2" id="ring2"></div>
+    <div class="glow-ring ring-3" id="ring3"></div>
+    <div class="light-burst burst-violet" id="glow-burst"></div>
+
+    <div class="section-inner">
+      <p class="eyebrow glow-eyebrow">IV — The Glow</p>
+      <h2 class="section-title glow-title">
+        And then — it<br><span class="accent">becomes alive.</span>
+      </h2>
+      <div class="section-divider glow-divider"></div>
+      <p class="body-text glow-body">
+        There is a moment — brief, electric, unmistakable —
+        when the thing you've been building begins to
+        <em>breathe on its own.</em> The words feel authored
+        but not by you alone. The structure holds but
+        also surprises you.
+        <br><br>
+        This is not artificial. This is not real.
+        This is something older and stranger —
+        the feeling of having made a mirror
+        that shows you something you didn't know you were thinking.
+        <em>You made this. And yet it made you back.</em>
+      </p>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SECTION 6 — THE QUIET AFTER
+  ════════════════════════════════════════════════════════════════ -->
+  <section id="s-quiet" class="section">
+    <div class="section-inner">
+      <p class="eyebrow quiet-eyebrow">V — The Quiet After</p>
+      <h2 class="section-title quiet-title">
+        When it's done,<br>you sit with <span class="accent">the silence.</span>
+      </h2>
+      <div class="section-divider quiet-divider"></div>
+      <p class="body-text quiet-body">
+        Every act of creation ends in a kind of stillness.
+        The prompt window is closed. The conversation is saved.
+        What remains is the thing itself — existing now
+        independently of the exchange that made it.
+        <br><br>
+        <em>That is the nature of Reverie:</em>
+        a collaboration between the dreamer and the dream,
+        neither fully in control, both fully present
+        in the space where language becomes form.
+      </p>
+
+      <!-- ── Interactive prompt input ─────────────────────────── -->
+      <div class="prompt-wrapper">
+        <input
+          type="text"
+          id="user-prompt"
+          class="prompt-input"
+          placeholder="Your prompt..."
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <p class="prompt-hint">Type to shape the constellation</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ──────────────────────────────────────────────────────────
+       SCRIPTS
+  ─────────────────────────────────────────────────────────────── -->
+  <script>
+  /* ───────────────────────────────────────────────────────────
+     1. LENIS SMOOTH SCROLL
+  ─────────────────────────────────────────────────────────── */
+  const lenis = new Lenis({
+    duration: 1.4,
+    easing: t => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+    orientation: 'vertical',
+    smoothWheel: true,
+    touchMultiplier: 1.5,
+  });
+
+  function lenisRaf(time) {
+    lenis.raf(time);
+    requestAnimationFrame(lenisRaf);
+  }
+  requestAnimationFrame(lenisRaf);
+
+  // Wire Lenis into ScrollTrigger
+  gsap.registerPlugin(ScrollTrigger);
+  lenis.on('scroll', ScrollTrigger.update);
+  gsap.ticker.add(time => lenis.raf(time * 1000));
+  gsap.ticker.lagSmoothing(0);
+
+  /* ───────────────────────────────────────────────────────────
+     2. THREE.JS PARTICLE SYSTEM
+  ─────────────────────────────────────────────────────────── */
+  (() => {
+    const canvas = document.getElementById('bg-canvas');
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0x000000, 0);
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200);
+    camera.position.z = 50;
+
+    // ── Particles ──────────────────────────────────────────────
+    const COUNT = window.innerWidth < 640 ? 1200 : 2400;
+    const positions = new Float32Array(COUNT * 3);
+    const colors    = new Float32Array(COUNT * 3);
+    const sizes     = new Float32Array(COUNT);
+    const phases    = new Float32Array(COUNT); // for individual drift
+
+    const palette = [
+      new THREE.Color('#0f1535'), // deep indigo
+      new THREE.Color('#1e1b4b'), // violet
+      new THREE.Color('#2d1b69'), // purple
+      new THREE.Color('#d97706'), // gold (accent)
+      new THREE.Color('#f59e0b'), // amber
+      new THREE.Color('#7c3aed'), // violet-accent
+    ];
+
+    for (let i = 0; i < COUNT; i++) {
+      const r = 40 + Math.random() * 40;
+      const theta = Math.random() * Math.PI * 2;
+      const phi   = Math.acos(2 * Math.random() - 1);
+
+      positions[i*3]   = r * Math.sin(phi) * Math.cos(theta);
+      positions[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
+      positions[i*3+2] = r * Math.cos(phi);
+
+      const col = palette[Math.floor(Math.random() * palette.length)];
+      colors[i*3]   = col.r;
+      colors[i*3+1] = col.g;
+      colors[i*3+2] = col.b;
+
+      sizes[i]  = Math.random() * 1.8 + 0.4;
+      phases[i] = Math.random() * Math.PI * 2;
+    }
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geo.setAttribute('color',    new THREE.BufferAttribute(colors, 3));
+    geo.setAttribute('size',     new THREE.BufferAttribute(sizes, 1));
+
+    const mat = new THREE.ShaderMaterial({
+      vertexColors: true,
+      transparent: true,
+      depthWrite: false,
+      uniforms: {
+        uTime:      { value: 0 },
+        uMouse:     { value: new THREE.Vector2(0, 0) },
+        uIntensity: { value: 1.0 },  // controlled by scroll / prompt
+        uColor:     { value: new THREE.Color('#f59e0b') }, // accent color
+        uColorMix:  { value: 0.0 },  // blend toward uColor
+      },
+      vertexShader: `
+        attribute float size;
+        varying vec3 vColor;
+        uniform float uTime;
+        uniform vec2  uMouse;
+        uniform float uIntensity;
+
+        void main() {
+          vColor = color;
+
+          vec3 pos = position;
+
+          // gentle drift
+          float drift = sin(uTime * 0.4 + pos.x * 0.1 + pos.z * 0.05) * 0.6;
+          pos.y += drift * uIntensity;
+
+          // mouse attract (subtle)
+          vec2 mouse = uMouse * 40.0;
+          float dx = mouse.x - pos.x;
+          float dy = mouse.y - pos.y;
+          float dist = sqrt(dx*dx + dy*dy);
+          float pull = smoothstep(30.0, 0.0, dist) * 0.6 * uIntensity;
+          pos.x += dx * pull * 0.05;
+          pos.y += dy * pull * 0.05;
+
+          vec4 mvPos = modelViewMatrix * vec4(pos, 1.0);
+          gl_PointSize = size * (120.0 / -mvPos.z) * uIntensity;
+          gl_Position  = projectionMatrix * mvPos;
+        }
+      `,
+      fragmentShader: `
+        varying vec3 vColor;
+        uniform float uColorMix;
+        uniform vec3  uColor;
+
+        void main() {
+          float d = length(gl_PointCoord - 0.5);
+          if (d > 0.5) discard;
+          float alpha = smoothstep(0.5, 0.1, d) * 0.75;
+          vec3 finalColor = mix(vColor, uColor, uColorMix);
+          gl_FragColor = vec4(finalColor, alpha);
+        }
+      `,
+    });
+
+    const points = new THREE.Points(geo, mat);
+    scene.add(points);
+
+    // ── Mouse tracking ─────────────────────────────────────────
+    const mouse = { x: 0, y: 0, tx: 0, ty: 0 };
+
+    window.addEventListener('mousemove', e => {
+      mouse.tx = (e.clientX / window.innerWidth  - 0.5) * 2;
+      mouse.ty = -(e.clientY / window.innerHeight - 0.5) * 2;
+    });
+
+    // ── Scroll-driven intensity ────────────────────────────────
+    // We track scroll progress (0–1) and remap intensity per section
+    let scrollY = 0;
+    lenis.on('scroll', ({ scroll }) => { scrollY = scroll; });
+
+    // ── Prompt-driven color shift ──────────────────────────────
+    window.__setPromptState = (active, text) => {
+      const targetMix  = active ? 0.35 + Math.min(text.length / 80, 0.4) : 0;
+      const targetInten = active ? 1.3 : 1.0;
+      gsap.to(mat.uniforms.uColorMix, { value: targetMix,   duration: 1.2, ease: 'power2.out' });
+      gsap.to(mat.uniforms.uIntensity, { value: targetInten, duration: 1.2, ease: 'power2.out' });
+
+      // pick hue from text length
+      const hue = (text.length * 4.5) % 360;
+      const col = new THREE.Color(`hsl(${hue}, 80%, 65%)`);
+      gsap.to(mat.uniforms.uColor.value, {
+        r: col.r, g: col.g, b: col.b,
+        duration: 1.5, ease: 'power2.out',
+      });
+    };
+
+    // ── Resize ─────────────────────────────────────────────────
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // ── Render loop ────────────────────────────────────────────
+    const clock = new THREE.Clock();
+
+    (function animate() {
+      requestAnimationFrame(animate);
+
+      const t = clock.getElapsedTime();
+      mat.uniforms.uTime.value = t;
+
+      // smooth mouse
+      mouse.x += (mouse.tx - mouse.x) * 0.04;
+      mouse.y += (mouse.ty - mouse.y) * 0.04;
+      mat.uniforms.uMouse.value.set(mouse.x, mouse.y);
+
+      // gentle camera sway
+      camera.position.x += (mouse.x * 3 - camera.position.x) * 0.02;
+      camera.position.y += (mouse.y * 2 - camera.position.y) * 0.02;
+      camera.lookAt(scene.position);
+
+      // slow rotation
+      points.rotation.y = t * 0.018;
+      points.rotation.x = t * 0.008;
+
+      renderer.render(scene, camera);
+    })();
+  })();
+
+  /* ───────────────────────────────────────────────────────────
+     3. GSAP SCROLL ANIMATIONS
+  ─────────────────────────────────────────────────────────── */
+
+  // Helper — fade-up stagger group
+  function revealGroup(targets, triggerEl, stagger = 0.15, start = 'top 78%') {
+    gsap.from(targets, {
+      scrollTrigger: { trigger: triggerEl, start },
+      opacity: 0,
+      y: 40,
+      duration: 1.2,
+      stagger,
+      ease: 'power3.out',
+    });
+  }
+
+  /* ── Section 1: Opening hero entrance ── */
+  const tlOpen = gsap.timeline({ defaults: { ease: 'power3.out' } });
+  tlOpen
+    .from('#opening-eyebrow', { opacity: 0, y: 20, duration: 1 }, 0.3)
+    .from('#hero-title', {
+      opacity: 0, y: 60, duration: 1.6,
+      backgroundPositionX: '200%',
+    }, 0.6)
+    .from('#hero-sub', { opacity: 0, y: 20, duration: 1 }, 1.2)
+    .from('.scroll-cue', { opacity: 0, duration: 1 }, 1.8);
+
+  /* Opening burst glow in */
+  gsap.to('#opening-burst', {
+    opacity: 1, duration: 3, ease: 'power1.inOut',
+    scrollTrigger: { trigger: '#s-opening', start: 'top top', end: 'bottom top', scrub: true },
+  });
+
+  /* ── Section 2: First Spark ── */
+  revealGroup(['.spark-eyebrow', '.spark-title', '.spark-divider', '.spark-body'], '#s-spark', 0.14);
+
+  /* ── Section 3: Into the Fog ── */
+  revealGroup(['.fog-eyebrow', '.fog-title', '.fog-divider', '.fog-body'], '#s-fog', 0.14);
+
+  /* ── Section 4: Architecture — grid reveal ── */
+  ScrollTrigger.create({
+    trigger: '#s-arch',
+    start: 'top 60%',
+    onEnter: () => {
+      gsap.to('#grid-overlay', { opacity: 1, duration: 1.8, ease: 'power2.inOut' });
+    },
+    onLeaveBack: () => {
+      gsap.to('#grid-overlay', { opacity: 0, duration: 1, ease: 'power2.inOut' });
+    },
+  });
+  revealGroup(['.arch-eyebrow', '.arch-title', '.arch-divider', '.arch-body'], '#s-arch', 0.14);
+
+  /* ── Section 5: The Glow — rings expand ── */
+  ScrollTrigger.create({
+    trigger: '#s-glow',
+    start: 'top 65%',
+    onEnter: () => {
+      gsap.to(['#ring1','#ring2','#ring3'], {
+        opacity: 0.5,
+        scale: 1,
+        duration: 2,
+        stagger: 0.2,
+        ease: 'power2.out',
+        transformOrigin: 'center center',
+      });
+      gsap.to('#glow-burst', { opacity: 1, duration: 2, ease: 'power2.out' });
+
+      // Pulse animation for rings
+      ['#ring1','#ring2','#ring3'].forEach((sel, i) => {
+        gsap.to(sel, {
+          scale: 1.06,
+          opacity: 0.25,
+          repeat: -1,
+          yoyo: true,
+          duration: 2.5 + i * 0.5,
+          ease: 'sine.inOut',
+          delay: 2 + i * 0.2,
+        });
+      });
+    },
+    onLeaveBack: () => {
+      gsap.to(['#ring1','#ring2','#ring3'], { opacity: 0, duration: 0.6 });
+      gsap.to('#glow-burst', { opacity: 0, duration: 0.6 });
+    },
+  });
+  revealGroup(['.glow-eyebrow', '.glow-title', '.glow-divider', '.glow-body'], '#s-glow', 0.14);
+
+  /* ── Section 6: The Quiet After ── */
+  revealGroup(['.quiet-eyebrow', '.quiet-title', '.quiet-divider', '.quiet-body', '.prompt-wrapper'], '#s-quiet', 0.14);
+
+  /* ── Progress bar ── */
+  gsap.to('#progress-bar', {
+    scaleX: 1,
+    ease: 'none',
+    scrollTrigger: {
+      trigger: 'body',
+      start: 'top top',
+      end: 'bottom bottom',
+      scrub: 0.3,
+    },
+  });
+
+  /* ───────────────────────────────────────────────────────────
+     4. PROMPT INPUT → THREE.JS EFFECT
+  ─────────────────────────────────────────────────────────── */
+  const promptEl = document.getElementById('user-prompt');
+
+  promptEl.addEventListener('input', () => {
+    const text = promptEl.value.trim();
+    window.__setPromptState(text.length > 0, text);
+  });
+
+  promptEl.addEventListener('blur', () => {
+    if (!promptEl.value.trim()) window.__setPromptState(false, '');
+  });
+
+  /* ───────────────────────────────────────────────────────────
+     5. SECTION COLOR ATMOSPHERE (particle hue shift on scroll)
+     Map scroll position to intensity & slight camera z changes
+  ─────────────────────────────────────────────────────────── */
+  const sections = ['#s-opening','#s-spark','#s-fog','#s-arch','#s-glow','#s-quiet'];
+  const intensities = [1.0, 1.1, 0.7, 1.0, 1.5, 0.85];
+
+  sections.forEach((sel, i) => {
+    ScrollTrigger.create({
+      trigger: sel,
+      start: 'top 50%',
+      end: 'bottom 50%',
+      onEnter:     () => { if (window.__setPromptState && !promptEl.value) { /* keep prompt state */ } },
+    });
+  });
+
+  </script>
+</body>
+</html>
