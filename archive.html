@@ -19,6 +19,11 @@
     ============================================================ */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
     :root {
       --bg:           #0B0B0E;
       --surface:      #101013;
@@ -218,6 +223,7 @@
       cursor: pointer;
       position: relative;
       transition: border-color 0.35s ease, transform 0.35s cubic-bezier(0.4,0,0.2,1), box-shadow 0.35s ease;
+      animation: cardIn 0.5s ease-out backwards;
     }
 
     .project-card:hover {
@@ -823,16 +829,17 @@
       `).join('');
     }
 
-    function cardHTML(p) {
+    function cardHTML(p, index) {
       const tagHTML = p.tech.slice(0, 3).map(t =>
         `<span class="tech-tag">${t}</span>`
       ).join('');
+      const delay = (index * 0.07).toFixed(2);
 
       return `
         <div
           class="project-card"
           data-id="${p.id}"
-          style="opacity:0; transform:translateY(22px);"
+          style="animation-delay:${delay}s;"
           onclick="openModal(${p.id})"
         >
           <div class="card-thumb">
@@ -857,17 +864,7 @@
 
     function renderGrid() {
       document.getElementById('projectGrid').innerHTML =
-        PROJECTS.map(cardHTML).join('');
-
-      gsap.to('.project-card', {
-        opacity: 1,
-        y: 0,
-        duration: 0.52,
-        stagger: 0.07,
-        ease: 'power3.out',
-        delay: 0.08,
-        clearProps: 'transform'
-      });
+        PROJECTS.map((p, i) => cardHTML(p, i)).join('');
     }
 
     /* ============================================================
@@ -892,31 +889,28 @@
 
       allCards.forEach(card => {
         const id = parseInt(card.dataset.id);
-        if (!matchIds.has(id)) {
-          card.style.display = 'none';
-        }
+        card.style.display = matchIds.has(id) ? 'block' : 'none';
       });
 
-      const visible = [];
-      allCards.forEach(card => {
-        const id = parseInt(card.dataset.id);
-        if (matchIds.has(id)) {
-          card.style.display = 'block';
-          visible.push(card);
-        }
-      });
+      const visible = Array.from(allCards).filter(c => c.style.display !== 'none');
 
       if (visible.length > 0) {
-        gsap.fromTo(visible,
-          { opacity: 0, y: 14, scale: 0.97 },
-          {
-            opacity: 1, y: 0, scale: 1,
-            duration: 0.38,
-            stagger: 0.05,
-            ease: 'power3.out',
-            clearProps: 'scale'
-          }
-        );
+        if (typeof gsap !== 'undefined') {
+          gsap.fromTo(visible,
+            { opacity: 0, y: 12, scale: 0.97 },
+            { opacity: 1, y: 0, scale: 1, duration: 0.36, stagger: 0.05, ease: 'power3.out', clearProps: 'all' }
+          );
+        } else {
+          visible.forEach((card, i) => {
+            card.style.animation = 'none';
+            card.style.opacity = '0';
+            setTimeout(() => {
+              card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+              card.style.opacity = '1';
+              card.style.transform = 'translateY(0)';
+            }, i * 50);
+          });
+        }
       }
 
       document.getElementById('visibleCount').textContent = matching.length;
@@ -1010,16 +1004,25 @@
       modal.classList.add('is-open');
       document.body.style.overflow = 'hidden';
 
-      gsap.to(overlay, { background: 'rgba(0,0,0,0.76)', duration: 0.38, ease: 'power2.out' });
-
-      overlay.style.transition = 'backdrop-filter 0.38s ease, -webkit-backdrop-filter 0.38s ease';
+      overlay.style.transition = 'background 0.38s ease, backdrop-filter 0.38s ease, -webkit-backdrop-filter 0.38s ease';
       overlay.style.backdropFilter = 'blur(18px)';
       overlay.style.webkitBackdropFilter = 'blur(18px)';
+      overlay.style.background = 'rgba(0,0,0,0.76)';
 
-      gsap.fromTo(box,
-        { opacity: 0, scale: 0.92, y: 30 },
-        { opacity: 1, scale: 1, y: 0, duration: 0.46, ease: 'power3.out' }
-      );
+      if (typeof gsap !== 'undefined') {
+        gsap.fromTo(box,
+          { opacity: 0, scale: 0.92, y: 30 },
+          { opacity: 1, scale: 1, y: 0, duration: 0.46, ease: 'power3.out' }
+        );
+      } else {
+        box.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+        box.style.opacity = '0';
+        box.style.transform = 'scale(0.95) translateY(20px)';
+        requestAnimationFrame(() => {
+          box.style.opacity = '1';
+          box.style.transform = 'scale(1) translateY(0)';
+        });
+      }
     }
 
     function closeModal() {
@@ -1029,17 +1032,22 @@
 
       overlay.style.backdropFilter = 'blur(0px)';
       overlay.style.webkitBackdropFilter = 'blur(0px)';
+      overlay.style.background = 'rgba(0,0,0,0)';
 
-      gsap.to(overlay, { background: 'rgba(0,0,0,0)', duration: 0.28, ease: 'power2.in' });
-      gsap.to(box, {
-        opacity: 0, scale: 0.95, y: 18,
-        duration: 0.26, ease: 'power2.in',
-        onComplete: () => {
-          modal.classList.remove('is-open');
-          document.body.style.overflow = '';
-          openModalId = null;
-        }
-      });
+      const finish = () => {
+        modal.classList.remove('is-open');
+        document.body.style.overflow = '';
+        openModalId = null;
+      };
+
+      if (typeof gsap !== 'undefined') {
+        gsap.to(box, { opacity: 0, scale: 0.95, y: 18, duration: 0.26, ease: 'power2.in', onComplete: finish });
+      } else {
+        box.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
+        box.style.opacity = '0';
+        box.style.transform = 'scale(0.95) translateY(16px)';
+        setTimeout(finish, 260);
+      }
     }
 
     function handleShare() {
