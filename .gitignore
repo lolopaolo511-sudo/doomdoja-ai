@@ -33,3 +33,7 @@ gig-finder/logs/
 
 # Nested duplicate directory
 qwen-agent/
+
+# Node
+node_modules/
+package-lock.json
