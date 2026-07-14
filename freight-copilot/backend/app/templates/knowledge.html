@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block heading %}Knowledge Base{% endblock %}
+{% block content %}
+<div class="grid md:grid-cols-3 gap-6">
+  <div class="md:col-span-2 space-y-3">
+    <form method="get" action="/knowledge" class="flex gap-2 mb-3">
+      <input name="q" value="{{ q }}" placeholder="Search notes…" class="border rounded p-2 text-sm flex-1">
+      <button class="bg-indigo-600 text-white px-3 rounded text-sm">Search</button>
+    </form>
+    {% for n in notes %}
+    <div class="bg-white rounded-lg shadow p-4">
+      <div class="flex justify-between">
+        <div class="font-semibold">{{ n.title }}</div>
+        <span class="px-2 py-0.5 rounded text-xs
+          {{ 'bg-emerald-100 text-emerald-700' if n.provenance=='confirmed'
+             else 'bg-amber-100 text-amber-700' if n.provenance=='model_suggested'
+             else 'bg-red-100 text-red-700' if n.provenance=='disputed'
+             else 'bg-slate-200 text-slate-600' }}">{{ n.provenance }}</span>
+      </div>
+      <p class="text-sm text-slate-600 mt-1">{{ n.body }}</p>
+      <div class="text-xs text-slate-400 mt-1">tags: {{ n.tags|join(', ') }}
+        {% if not n.approved %}· <span class="text-amber-600">pending approval</span>{% endif %}</div>
+      <div class="flex gap-2 mt-2">
+        {% if not n.approved %}
+        <form method="post" action="/knowledge/{{ n.id }}/approve">
+          <button class="text-xs text-emerald-600">Approve &amp; save</button></form>
+        {% endif %}
+        <form method="post" action="/knowledge/{{ n.id }}/delete">
+          <button class="text-xs text-red-600">Delete</button></form>
+      </div>
+    </div>
+    {% else %}<p class="text-slate-400 text-sm">No notes.</p>{% endfor %}
+  </div>
+  <div>
+    <div class="bg-white rounded-lg shadow p-4">
+      <h2 class="font-semibold mb-2">Add note</h2>
+      <form method="post" action="/knowledge/add" class="space-y-2">
+        <input name="title" placeholder="Title" class="w-full border rounded p-2 text-sm" required>
+        <textarea name="body" rows="4" placeholder="Body" class="w-full border rounded p-2 text-sm" required></textarea>
+        <button class="bg-indigo-600 text-white px-3 py-1.5 rounded text-sm w-full">Save note</button>
+      </form>
+      <p class="text-xs text-slate-400 mt-2">Model-suggested notes require approval before they
+        influence recommendations, and only as attributed historical observations.</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,28 @@
+# Secrets / env
+.env
+*.env
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+backend/.venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Local databases / data
+*.db
+*.sqlite3
+backend/freight_copilot.db
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# Node (future Next.js frontend)
+node_modules/
+.next/

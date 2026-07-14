@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block heading %}Opportunity Inbox{% endblock %}
+{% block content %}
+{% if import_result %}
+<div class="mb-4 rounded p-3 text-sm
+  {{ 'bg-red-50 text-red-700 border border-red-200' if import_result.error
+     else 'bg-emerald-50 text-emerald-700 border border-emerald-200' }}">
+  {% if import_result.error %}
+    Import failed — unsupported file type or too large (use .csv / .xlsx).
+  {% else %}
+    Imported <b>{{ import_result.imported }}</b> offer(s);
+    {{ import_result.dupes }} duplicate(s) skipped; {{ import_result.errors }} row error(s).
+  {% endif %}
+</div>
+{% endif %}
+
+<div class="grid md:grid-cols-2 gap-6 mb-6">
+  <div class="bg-white rounded-lg shadow p-5">
+    <h2 class="font-semibold mb-2">Paste a freight offer (PL / EN / IT / DE)</h2>
+    <form method="post" action="/opportunities/intake" class="space-y-2">
+      <textarea name="text" rows="3" class="w-full border rounded p-2 text-sm"
+        placeholder="e.g. Carico Warsaw (PL) -> Milan (IT), 22t tautliner, ADR, ritiro 12/06, 1850 EUR"></textarea>
+      <button class="bg-indigo-600 text-white px-4 py-2 rounded text-sm">Normalize &amp; score</button>
+      <p class="text-xs text-slate-500">Imported text is treated as untrusted data and scanned for
+        prompt-injection before use.</p>
+    </form>
+  </div>
+  <div class="bg-white rounded-lg shadow p-5">
+    <h2 class="font-semibold mb-2">Bulk import (CSV / XLSX)</h2>
+    <form method="post" action="/opportunities/import" enctype="multipart/form-data" class="space-y-2">
+      <input type="file" name="file" accept=".csv,.xlsx,.txt"
+        class="w-full border rounded p-2 text-sm bg-slate-50" required>
+      <button class="bg-indigo-600 text-white px-4 py-2 rounded text-sm">Import &amp; score</button>
+      <p class="text-xs text-slate-500">Columns: origin_city, origin_country, dest_city,
+        dest_country, weight_kg, vehicle_type, adr, customer_rate, currency, pickup_date —
+        or a single <code>raw_text</code> column. Duplicates are skipped.</p>
+    </form>
+  </div>
+</div>
+
+<div class="bg-white rounded-lg shadow overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-slate-50 text-left text-xs uppercase text-slate-500">
+      <tr><th class="p-3">Route</th><th>Source</th><th>Score</th><th>Priority</th>
+        <th>State</th><th>Rate</th><th>Missing</th></tr>
+    </thead>
+    <tbody class="divide-y">
+      {% for o in offers %}
+      <tr class="hover:bg-slate-50">
+        <td class="p-3"><a class="text-indigo-600 hover:underline"
+          href="/opportunities/{{ o.id }}">{{ o.origin_city }} → {{ o.dest_city }}</a></td>
+        <td>{{ o.source_platform }}</td>
+        <td class="font-mono">{{ o.score if o.score is not none else '—' }}</td>
+        <td>{{ o.priority or '—' }}</td>
+        <td>
+          <span class="px-2 py-0.5 rounded text-xs
+            {{ 'bg-amber-100 text-amber-700' if o.triage_state=='needs_review'
+               else 'bg-slate-200 text-slate-600' if o.triage_state=='duplicate'
+               else 'bg-emerald-100 text-emerald-700' }}">{{ o.triage_state }}</span>
+        </td>
+        <td>{{ o.customer_rate }} {{ o.currency if o.customer_rate }}</td>
+        <td class="text-xs text-red-600">{{ o.missing_fields|join(', ') }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
