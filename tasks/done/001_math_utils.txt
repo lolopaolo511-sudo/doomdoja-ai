@@ -1,0 +1,9 @@
+W pliku math_utils.py zaimplementuj dwie funkcje:
+
+1. is_palindrome(s: str) -> bool
+   Zwraca True jeśli string s jest palindromem (ignoruj wielkość liter i spacje), False w przeciwnym razie.
+
+2. count_vowels(s: str) -> int
+   Zwraca liczbę samogłosek (a, e, i, o, u) w stringu s (case-insensitive).
+
+Testy są już napisane w test_math_utils.py — upewnij się, że przechodzą.
